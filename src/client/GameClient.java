@@ -7,7 +7,7 @@ import server.Message;
 public class GameClient {
 
     private Thread listenThread;
-    public GameClientListener listener; // GUI'den bağlayacağız
+    public GameClientListener listener; 
 
     private Socket socket;
     private DataOutputStream out;

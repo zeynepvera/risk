@@ -25,7 +25,7 @@ public class SClient extends Thread {
     }
 
     public void MsgParser(String msg) throws IOException {
-        System.out.println("📩 Gelen mesaj: " + msg); // LOG
+        System.out.println(" Gelen mesaj: " + msg); // LOG
 
         String[] tokens = msg.split("#");
         Message.Type mt;
@@ -33,7 +33,6 @@ public class SClient extends Thread {
         try {
             mt = Message.Type.valueOf(tokens[0].trim());
         } catch (IllegalArgumentException e) {
-            System.out.println("❌ Bilinmeyen mesaj tipi: " + tokens[0]);
             return;
         }
 
@@ -52,8 +51,6 @@ public class SClient extends Thread {
                 this.ownerServer.SendMessageToClient(targetId, datas[1]);
                 break;
 
-            default:
-                System.out.println("⚠️ İşlenmeyen mesaj tipi: " + mt);
         }
     }
 
