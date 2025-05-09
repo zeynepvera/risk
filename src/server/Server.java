@@ -19,7 +19,7 @@ public class Server extends Thread {
     // Game-specific variables
     private GameMap map;
     private GameState gameState;
-    private List<Player> playerList;
+    public List<Player> playerList;
 
     public Server(int port) throws IOException {
         this.clientId = 0;
@@ -57,6 +57,17 @@ public class Server extends Thread {
         }
     }
 
+    private String serializeMap(GameMap map) {
+        StringBuilder sb = new StringBuilder();
+        for (Territory t : map.getAllTerritories()) {
+            sb.append(t.getName())
+                    .append(" - Sahibi: ").append(t.getOwnerId())
+                    .append(", Asker: ").append(t.getArmyCount())
+                    .append("\n");
+        }
+        return sb.toString();
+    }
+
     @Override
     public void run() {
         try {
@@ -91,6 +102,16 @@ public class Server extends Thread {
                     }
 
                     System.out.println("Oyun başlatıldı! İlk oyuncu: " + gameState.getCurrentPlayer().getName());
+                    for (Player p : playerList) {
+                        String info = p.getId() + "," + p.getName();
+                        String msg = Message.GenerateMsg(Message.Type.PLAYERINFO, info);
+                        this.SendMessageToClient(p.getId(), msg);
+                    }
+
+                    String mapText = serializeMap(map);
+                    String mapMsg = Message.GenerateMsg(Message.Type.MAPDATA, mapText);
+                    this.SendBroadcastMsg(mapMsg.getBytes());
+
                 }
             }
         } catch (IOException ex) {
@@ -102,7 +123,7 @@ public class Server extends Thread {
         try {
             Server s1 = new Server(6000);
             s1.StartAcceptance();
-            System.out.println("Sunucu başlatıldı. Bağlantı bekleniyor...");
+            System.out.println("Server started. Waiting for connections...");
         } catch (IOException ex) {
             Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
         }

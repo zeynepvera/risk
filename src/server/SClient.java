@@ -1,7 +1,7 @@
 package server;
 
+import java.io.DataInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
@@ -12,29 +12,48 @@ public class SClient extends Thread {
     int id;
     Socket csocket;
     OutputStream coutput;
-    InputStream cinput;
+    DataInputStream cinput;
     Server ownerServer;
 
     public SClient(Socket connectedSocket, Server server) throws IOException {
         this.csocket = connectedSocket;
         this.coutput = this.csocket.getOutputStream();
-        this.cinput = this.csocket.getInputStream();
+        this.cinput = new DataInputStream(this.csocket.getInputStream());
         this.ownerServer = server;
         this.id = server.clientId;
         server.clientId++;
     }
 
     public void MsgParser(String msg) throws IOException {
-        String tokens[] = msg.split("#");
-        Message.Type mt = Message.Type.valueOf(tokens[0].trim());
+        System.out.println("📩 Gelen mesaj: " + msg); // LOG
+
+        String[] tokens = msg.split("#");
+        Message.Type mt;
+
+        try {
+            mt = Message.Type.valueOf(tokens[0].trim());
+        } catch (IllegalArgumentException e) {
+            System.out.println("❌ Bilinmeyen mesaj tipi: " + tokens[0]);
+            return;
+        }
+
         switch (mt) {
+            case PLAYERNAME:
+                this.ownerServer.playerList
+                        .stream()
+                        .filter(p -> p.getId() == this.id)
+                        .findFirst()
+                        .ifPresent(p -> p.setName(tokens[1]));
+                break;
+
             case TOCLIENT:
-                String datas[] = tokens[1].split(",");
+                String[] datas = tokens[1].split(",");
                 int targetId = Integer.parseInt(datas[0]);
                 this.ownerServer.SendMessageToClient(targetId, datas[1]);
                 break;
+
             default:
-                System.out.println("Bilinmeyen mesaj tipi: " + mt);
+                System.out.println("⚠️ İşlenmeyen mesaj tipi: " + mt);
         }
     }
 
@@ -42,12 +61,13 @@ public class SClient extends Thread {
         this.start();
     }
 
+    @Override
     public void run() {
         try {
             while (!this.csocket.isClosed()) {
                 int bsize = this.cinput.read();
-                byte buffer[] = new byte[bsize];
-                this.cinput.read(buffer);
+                byte[] buffer = new byte[bsize];
+                this.cinput.readFully(buffer); // 👈 Kritik düzeltme: tüm mesaj okunur
                 String rsMsg = new String(buffer);
                 this.MsgParser(rsMsg);
             }
