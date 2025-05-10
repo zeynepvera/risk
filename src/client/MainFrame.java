@@ -1,8 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
+
 package client;
+
 import client.GameClient;
 
 public class MainFrame extends javax.swing.JFrame implements GameClient.GameClientListener {
@@ -10,8 +8,7 @@ public class MainFrame extends javax.swing.JFrame implements GameClient.GameClie
     public MainFrame() {
         initComponents();
     }
-private GameClient client;
-
+    private GameClient client;
 
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
@@ -26,6 +23,9 @@ private GameClient client;
         txtOyuncuAdi = new javax.swing.JTextField();
         btnHazir = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
+        cmbKaynak = new javax.swing.JComboBox<>();
+        cmbHedef = new javax.swing.JComboBox<>();
+        btnSaldir = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -67,50 +67,87 @@ private GameClient client;
 
         jLabel1.setText("Oyuncu Adi:");
 
+        cmbKaynak.addItemListener(new java.awt.event.ItemListener() {
+            public void itemStateChanged(java.awt.event.ItemEvent evt) {
+                cmbKaynakİtemStateChanged(evt);
+            }
+        });
+        cmbKaynak.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cmbKaynakActionPerformed(evt);
+            }
+        });
+
+        cmbHedef.setBackground(new java.awt.Color(153, 255, 153));
+        cmbHedef.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cmbHedefActionPerformed(evt);
+            }
+        });
+
+        btnSaldir.setText("Saldır");
+        btnSaldir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnSaldirActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGap(64, 64, 64)
-                .addComponent(lblDurum)
-                .addGap(44, 44, 44)
-                .addComponent(btnBaglan)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 256, Short.MAX_VALUE)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(btnHarita)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(150, 150, 150))
             .addGroup(layout.createSequentialGroup()
+                .addGap(32, 32, 32)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addComponent(lblDurum)
+                    .addComponent(jLabel1))
+                .addGap(74, 74, 74)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(btnBaglan)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(117, 117, 117)
-                        .addComponent(jLabel1)
-                        .addGap(29, 29, 29)
-                        .addComponent(txtOyuncuAdi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(187, 187, 187)
+                        .addComponent(txtOyuncuAdi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(64, 64, 64)
                         .addComponent(btnHazir)))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 168, Short.MAX_VALUE)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 187, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(23, 23, 23))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(cmbKaynak, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(48, 48, 48)
+                        .addComponent(cmbHedef, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(45, 45, 45)
+                        .addComponent(btnSaldir))
+                    .addComponent(btnHarita))
+                .addGap(53, 53, 53))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(143, 143, 143)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(btnBaglan)
-                    .addComponent(lblDurum))
-                .addGap(60, 60, 60)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(33, 33, 33)
-                .addComponent(btnHarita)
-                .addGap(31, 31, 31)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel1)
-                    .addComponent(txtOyuncuAdi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(35, 35, 35)
-                .addComponent(btnHazir)
-                .addContainerGap(111, Short.MAX_VALUE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(58, 58, 58)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel1)
+                            .addComponent(txtOyuncuAdi, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(btnHazir)))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(33, 33, 33)
+                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 101, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addGap(30, 30, 30)
+                .addComponent(btnHarita)
+                .addGap(4, 4, 4)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(lblDurum)
+                    .addComponent(btnBaglan))
+                .addGap(90, 90, 90)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(cmbKaynak, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(cmbHedef, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnSaldir))
+                .addContainerGap(277, Short.MAX_VALUE))
         );
 
         pack();
@@ -118,31 +155,29 @@ private GameClient client;
 
     private void btnBaglanActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnBaglanActionPerformed
 
-client = new GameClient("localhost", 6000);
-client.listener = this;
-lblDurum.setText("Durum: Bağlantı başarılı");
-
-try {
-    client = new GameClient("localhost", 6000);
-    lblDurum.setText("Durum: Bağlantı başarılı");
-} catch (Exception e) {
-    lblDurum.setText("Durum: Bağlantı hatası");
-    e.printStackTrace();
-}
+      
+       try {
+        client = new GameClient("localhost", 6000);
+        client.listener = this;
+        lblDurum.setText("Durum: Bağlantı başarılı");
+    } catch (Exception e) {
+        lblDurum.setText("Durum: Bağlantı hatası");
+        e.printStackTrace();
+    }
 
 
     }//GEN-LAST:event_btnBaglanActionPerformed
 
     private void btnHaritaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHaritaActionPerformed
-String harita =
-        "A - Komşular: B, C\n" +
-        "B - Komşular: A, D\n" +
-        "C - Komşular: A, E\n" +
-        "D - Komşular: B, F\n" +
-        "E - Komşular: C, F\n" +
-        "F - Komşular: D, E\n";
+        String harita
+                = "A - Komşular: B, C\n"
+                + "B - Komşular: A, D\n"
+                + "C - Komşular: A, E\n"
+                + "D - Komşular: B, F\n"
+                + "E - Komşular: C, F\n"
+                + "F - Komşular: D, E\n";
 
-txtHarita.setText(harita);
+        txtHarita.setText(harita);
 
 
     }//GEN-LAST:event_btnHaritaActionPerformed
@@ -152,19 +187,66 @@ txtHarita.setText(harita);
     }//GEN-LAST:event_txtOyuncuAdiActionPerformed
 
     private void btnHazirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnHazirActionPerformed
-String oyuncuAdi = txtOyuncuAdi.getText().trim();
-if (oyuncuAdi.isEmpty()) {
-    lblDurum.setText("Lütfen adınızı girin.");
-    return;
-}
+        String oyuncuAdi = txtOyuncuAdi.getText().trim();
+        if (oyuncuAdi.isEmpty()) {
+            lblDurum.setText("Lütfen adınızı girin.");
+            return;
+        }
 
-client.sendMessage("PLAYERNAME#" + oyuncuAdi);
-lblDurum.setText("Hazır oldunuz: " + oyuncuAdi);
-btnHazir.setEnabled(false);
-txtOyuncuAdi.setEditable(false);
+        client.sendMessage("PLAYERNAME#" + oyuncuAdi);
+        lblDurum.setText("Hazır oldunuz: " + oyuncuAdi);
+        btnHazir.setEnabled(false);
+        txtOyuncuAdi.setEditable(false);
 
 
     }//GEN-LAST:event_btnHazirActionPerformed
+
+    private void cmbHedefActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbHedefActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cmbHedefActionPerformed
+
+    private void cmbKaynakActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmbKaynakActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cmbKaynakActionPerformed
+
+    private void cmbKaynakİtemStateChanged(java.awt.event.ItemEvent evt) {//GEN-FIRST:event_cmbKaynakİtemStateChanged
+
+        if (evt.getStateChange() == java.awt.event.ItemEvent.SELECTED) {
+            String kaynak = (String) cmbKaynak.getSelectedItem();
+            cmbHedef.removeAllItems();
+            if (kaynak.equals("A")) {
+                cmbHedef.addItem("B");
+                cmbHedef.addItem("C");
+            } else if (kaynak.equals("B")) {
+                cmbHedef.addItem("A");
+                cmbHedef.addItem("D");
+            } else if (kaynak.equals("C")) {
+                cmbHedef.addItem("A");
+                cmbHedef.addItem("E");
+            } else if (kaynak.equals("D")) {
+                cmbHedef.addItem("B");
+                cmbHedef.addItem("F");
+            } else if (kaynak.equals("E")) {
+                cmbHedef.addItem("C");
+                cmbHedef.addItem("F");
+            } else if (kaynak.equals("F")) {
+                cmbHedef.addItem("D");
+                cmbHedef.addItem("E");
+            }}
+    }//GEN-LAST:event_cmbKaynakİtemStateChanged
+
+    private void btnSaldirActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnSaldirActionPerformed
+
+        String kaynak = (String) cmbKaynak.getSelectedItem();
+        String hedef = (String) cmbHedef.getSelectedItem();
+
+        if (kaynak != null && hedef != null && client != null) {
+            client.sendMessage("ATTACK#" + kaynak + "," + hedef);
+            lblDurum.setText("Saldırılıyor: " + kaynak + " → " + hedef);
+        }
+
+
+    }//GEN-LAST:event_btnSaldirActionPerformed
 
     /**
      * @param args the command line arguments
@@ -205,6 +287,9 @@ txtOyuncuAdi.setEditable(false);
     private javax.swing.JButton btnBaglan;
     private javax.swing.JButton btnHarita;
     private javax.swing.JButton btnHazir;
+    private javax.swing.JButton btnSaldir;
+    private javax.swing.JComboBox<String> cmbHedef;
+    private javax.swing.JComboBox<String> cmbKaynak;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
@@ -213,14 +298,21 @@ txtOyuncuAdi.setEditable(false);
     private javax.swing.JTextField txtOyuncuAdi;
     // End of variables declaration//GEN-END:variables
 
-   @Override
-public void onMapDataReceived(String mapText) {
-    txtHarita.setText(mapText);
-}
-@Override
-public void onPlayerInfoReceived(int id, String name) {
-    lblDurum.setText("Oyuncu ID: " + id + " | Ad: " + name);
-}
+    @Override
+    public void onMapDataReceived(String mapText) {
+        txtHarita.setText(mapText);
+    }
 
+    @Override
+    public void onPlayerInfoReceived(int id, String name) {
+        lblDurum.setText("Oyuncu ID: " + id + " | Ad: " + name);
+
+        if (client != null) {
+            // Haritayı al
+            cmbKaynak.removeAllItems();
+            cmbKaynak.addItem("A");
+            cmbKaynak.addItem("B");
+        }
+    }
 
 }

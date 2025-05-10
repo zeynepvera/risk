@@ -17,8 +17,8 @@ public class Server extends Thread {
     public ArrayList<SClient> clients;
 
     // Game-specific variables
-    private GameMap map;
-    private GameState gameState;
+    public GameMap map;
+    public GameState gameState;
     public List<Player> playerList;
 
     public Server(int port) throws IOException {
@@ -57,7 +57,7 @@ public class Server extends Thread {
         }
     }
 
-    private String serializeMap(GameMap map) {
+    public String serializeMap(GameMap map) {
         StringBuilder sb = new StringBuilder();
         for (Territory t : map.getAllTerritories()) {
             sb.append(t.getName())

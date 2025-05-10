@@ -10,6 +10,7 @@ public class Message {
     TOCLIENT,
     PLAYERNAME,
     PLAYERINFO,
+    ATTACK,
     MAPDATA  // yeni satır
 }
 
