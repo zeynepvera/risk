@@ -11,8 +11,7 @@ import java.util.*;
 import java.util.List;
 
 /**
- * Risk oyunu istemci uygulaması.
- * Kullanıcı dostu grafiksel arayüz içerir.
+ * Risk oyunu için başlangıç ve bitiş ekranlarını içeren genişletilmiş istemci uygulaması.
  */
 public class RiskClient extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -33,7 +32,11 @@ public class RiskClient extends JFrame {
     private ActionType currentAction;
     
     // GUI bileşenleri
-    private JPanel mainPanel;
+    private CardLayout cardLayout; // Farklı ekranlar arasında geçiş için
+    private JPanel contentPanel; // Ana içerik paneli (tüm ekranları içerir)
+    private JPanel mainPanel; // Oyun ana paneli
+    private JPanel menuPanel; // Başlangıç menü paneli
+    private JPanel gameOverPanel; // Oyun sonu paneli
     private MapPanel mapPanel;
     private JTextArea chatArea;
     private JTextField chatField;
@@ -48,6 +51,7 @@ public class RiskClient extends JFrame {
     private JButton connectButton;
     private JTextField serverIPField;
     private JTextField usernameField;
+    private JTextField portField;
     
     /**
      * Ana metod, istemciyi başlatır.
@@ -68,7 +72,18 @@ public class RiskClient extends JFrame {
         setSize(1200, 800);
         setLocationRelativeTo(null);
         
-        initializeGUI();
+        // CardLayout ile farklı ekranlar arasında geçiş yapılabilir
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        setContentPane(contentPanel);
+        
+        // Ekranları oluştur ve ekle
+        initializeMenuScreen();
+        initializeGameScreen();
+        initializeGameOverScreen();
+        
+        // Başlangıçta menü ekranını göster
+        cardLayout.show(contentPanel, "menu");
         
         // Pencere kapanırken bağlantıyı kapat
         addWindowListener(new WindowAdapter() {
@@ -80,11 +95,226 @@ public class RiskClient extends JFrame {
     }
     
     /**
-     * GUI bileşenlerini oluşturur ve yerleştirir.
+     * Başlangıç menü ekranını oluşturur.
      */
-    private void initializeGUI() {
+    private void initializeMenuScreen() {
+        menuPanel = new JPanel(new BorderLayout());
+        menuPanel.setBackground(new Color(240, 240, 255));
+        
+        // Logo/başlık paneli
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(50, 50, 100));
+        titlePanel.setPreferredSize(new Dimension(1200, 200));
+        
+        JLabel titleLabel = new JLabel("RISK OYUNU");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 72));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel);
+        menuPanel.add(titlePanel, BorderLayout.NORTH);
+        
+        // Menü seçenekleri
+        JPanel optionsPanel = new JPanel();
+        optionsPanel.setBackground(new Color(240, 240, 255));
+        optionsPanel.setLayout(new BoxLayout(optionsPanel, BoxLayout.Y_AXIS));
+        optionsPanel.setBorder(BorderFactory.createEmptyBorder(50, 0, 50, 0));
+        
+        // Bağlantı bilgileri paneli
+        JPanel connectionInfoPanel = new JPanel(new GridBagLayout());
+        connectionInfoPanel.setBackground(new Color(240, 240, 255));
+        connectionInfoPanel.setBorder(BorderFactory.createTitledBorder("Sunucu Bağlantı Bilgileri"));
+        connectionInfoPanel.setMaximumSize(new Dimension(500, 250));
+        connectionInfoPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        connectionInfoPanel.add(new JLabel("Sunucu IP:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        serverIPField = new JTextField("", 15);
+        serverIPField.setToolTipText("Sunucu IP adresi (örn: 54.123.456.789)");
+        connectionInfoPanel.add(serverIPField, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        connectionInfoPanel.add(new JLabel("Port:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 1;
+        portField = new JTextField(String.valueOf(PORT), 15);
+        portField.setToolTipText("Sunucu port numarası (varsayılan: 9876)");
+        connectionInfoPanel.add(portField, gbc);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        connectionInfoPanel.add(new JLabel("Kullanıcı Adı:"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.gridy = 2;
+        usernameField = new JTextField(15);
+        connectionInfoPanel.add(usernameField, gbc);
+        
+        optionsPanel.add(connectionInfoPanel);
+        optionsPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        
+        // Menü butonları
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(new Color(240, 240, 255));
+        buttonPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        
+        JButton playButton = createMenuButton("Oyuna Başla", 250, 50);
+        playButton.addActionListener(e -> {
+            if (usernameField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Lütfen bir kullanıcı adı girin.", "Hata", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            if (serverIPField.getText().trim().isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Lütfen bir sunucu IP adresi girin.", "Hata", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Oyun ekranına geç ve sunucuya bağlan
+            cardLayout.show(contentPanel, "game");
+            connectToServer();
+        });
+        
+        JButton awsConnectButton = createMenuButton("AWS'ye Bağlan", 250, 50);
+        awsConnectButton.setBackground(new Color(255, 153, 0)); // AWS turuncu rengi
+        awsConnectButton.setForeground(Color.WHITE);
+        awsConnectButton.addActionListener(e -> {
+            String awsIp = JOptionPane.showInputDialog(this, 
+                "AWS instance IP adresini girin:", 
+                "AWS Bağlantısı", 
+                JOptionPane.QUESTION_MESSAGE);
+            
+            if (awsIp != null && !awsIp.trim().isEmpty()) {
+                serverIPField.setText(awsIp.trim());
+            }
+        });
+        
+        JButton exitButton = createMenuButton("Çıkış", 250, 50);
+        exitButton.addActionListener(e -> System.exit(0));
+        
+        buttonPanel.add(playButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(awsConnectButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(exitButton);
+        
+        optionsPanel.add(buttonPanel);
+        menuPanel.add(optionsPanel, BorderLayout.CENTER);
+        
+        // Alt bilgi paneli
+        JPanel footerPanel = new JPanel();
+        footerPanel.setBackground(new Color(50, 50, 100));
+        footerPanel.setPreferredSize(new Dimension(1200, 50));
+        
+        JLabel footerLabel = new JLabel("© 2025 Risk Oyunu - Tüm hakları saklıdır.");
+        footerLabel.setForeground(Color.WHITE);
+        footerPanel.add(footerLabel);
+        menuPanel.add(footerPanel, BorderLayout.SOUTH);
+        
+        // İçerik paneline ekle
+        contentPanel.add(menuPanel, "menu");
+    }
+    
+    /**
+     * Menü butonu oluşturur.
+     */
+    private JButton createMenuButton(String text, int width, int height) {
+        JButton button = new JButton(text);
+        button.setPreferredSize(new Dimension(width, height));
+        button.setFont(new Font("Arial", Font.BOLD, 16));
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setBackground(new Color(70, 130, 180));
+        button.setForeground(Color.WHITE);
+        return button;
+    }
+    
+    /**
+     * Oyun sonu ekranını oluşturur.
+     */
+    private void initializeGameOverScreen() {
+        gameOverPanel = new JPanel(new BorderLayout());
+        gameOverPanel.setBackground(new Color(240, 240, 255));
+        
+        // Başlık paneli
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(50, 50, 100));
+        titlePanel.setPreferredSize(new Dimension(1200, 150));
+        
+        JLabel titleLabel = new JLabel("OYUN SONA ERDİ");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel);
+        gameOverPanel.add(titlePanel, BorderLayout.NORTH);
+        
+        // Sonuç paneli
+        JPanel resultPanel = new JPanel();
+        resultPanel.setLayout(new BoxLayout(resultPanel, BoxLayout.Y_AXIS));
+        resultPanel.setBackground(new Color(240, 240, 255));
+        resultPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
+        
+        JLabel winnerLabel = new JLabel("Kazanan: ");
+        winnerLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        winnerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resultPanel.add(winnerLabel);
+        
+        resultPanel.add(Box.createRigidArea(new Dimension(0, 50)));
+        
+        // Butonlar
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(new Color(240, 240, 255));
+        
+        JButton newGameButton = createMenuButton("Yeni Oyun", 200, 50);
+        newGameButton.addActionListener(e -> {
+            disconnectFromServer();
+            cardLayout.show(contentPanel, "menu");
+        });
+        
+        JButton mainMenuButton = createMenuButton("Ana Menü", 200, 50);
+        mainMenuButton.addActionListener(e -> {
+            disconnectFromServer();
+            cardLayout.show(contentPanel, "menu");
+        });
+        
+        JButton exitButton = createMenuButton("Çıkış", 200, 50);
+        exitButton.addActionListener(e -> System.exit(0));
+        
+        buttonPanel.add(newGameButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(mainMenuButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(exitButton);
+        
+        resultPanel.add(buttonPanel);
+        gameOverPanel.add(resultPanel, BorderLayout.CENTER);
+        
+        // Alt bilgi paneli
+        JPanel footerPanel = new JPanel();
+        footerPanel.setBackground(new Color(50, 50, 100));
+        footerPanel.setPreferredSize(new Dimension(1200, 50));
+        
+        JLabel footerLabel = new JLabel("© 2025 Risk Oyunu - Tüm hakları saklıdır.");
+        footerLabel.setForeground(Color.WHITE);
+        footerPanel.add(footerLabel);
+        gameOverPanel.add(footerPanel, BorderLayout.SOUTH);
+        
+        // İçerik paneline ekle
+        contentPanel.add(gameOverPanel, "gameOver");
+    }
+    
+    /**
+     * Oyun ekranını oluşturur.
+     */
+    private void initializeGameScreen() {
         mainPanel = new JPanel(new BorderLayout());
-        setContentPane(mainPanel);
         
         // Oyun haritası paneli
         mapPanel = new MapPanel(this);
@@ -107,8 +337,28 @@ public class RiskClient extends JFrame {
         JPanel chatPanel = createChatPanel();
         rightPanel.add(chatPanel, BorderLayout.SOUTH);
         
+        // Ana menüye dönüş butonu
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton menuButton = new JButton("Ana Menüye Dön");
+        menuButton.addActionListener(e -> {
+            int result = JOptionPane.showConfirmDialog(this, 
+                "Ana menüye dönmek istediğinizden emin misiniz? Aktif oyun sonlandırılacaktır.", 
+                "Ana Menüye Dön", 
+                JOptionPane.YES_NO_OPTION);
+            
+            if (result == JOptionPane.YES_OPTION) {
+                disconnectFromServer();
+                cardLayout.show(contentPanel, "menu");
+            }
+        });
+        topPanel.add(menuButton);
+        mainPanel.add(topPanel, BorderLayout.NORTH);
+        
         // Başlangıçta oyun kontrollerini devre dışı bırak
         setGameControlsEnabled(false);
+        
+        // İçerik paneline ekle
+        contentPanel.add(mainPanel, "game");
     }
     
     /**
@@ -123,38 +373,7 @@ public class RiskClient extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
         gbc.gridx = 0;
-        gbc.gridy = 0;
-        panel.add(new JLabel("Sunucu IP:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        serverIPField = new JTextField("localhost", 15);
-        panel.add(serverIPField, gbc);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        panel.add(new JLabel("Kullanıcı Adı:"), gbc);
-        
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        usernameField = new JTextField(15);
-        panel.add(usernameField, gbc);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        connectButton = new JButton("Bağlan");
-        connectButton.addActionListener(e -> {
-            if (!connected) {
-                connectToServer();
-            } else {
-                disconnectFromServer();
-            }
-        });
-        panel.add(connectButton, gbc);
-        
-        gbc.gridx = 0;
-        gbc.gridy = 3;
+        gbc.gridy = 4;
         gbc.gridwidth = 2;
         statusLabel = new JLabel("Bağlantı durumu: Bağlı değil", JLabel.CENTER);
         panel.add(statusLabel, gbc);
@@ -228,10 +447,12 @@ public class RiskClient extends JFrame {
         JPanel inputPanel = new JPanel(new BorderLayout());
         chatField = new JTextField();
         chatField.addActionListener(e -> sendChatMessage());
+        chatField.setEnabled(false); // Başlangıçta devre dışı
         inputPanel.add(chatField, BorderLayout.CENTER);
         
         sendButton = new JButton("Gönder");
         sendButton.addActionListener(e -> sendChatMessage());
+        sendButton.setEnabled(false); // Başlangıçta devre dışı
         inputPanel.add(sendButton, BorderLayout.EAST);
         
         panel.add(inputPanel, BorderLayout.SOUTH);
@@ -246,37 +467,60 @@ public class RiskClient extends JFrame {
         serverIP = serverIPField.getText().trim();
         username = usernameField.getText().trim();
         
+        if (serverIP.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Lütfen bir sunucu IP adresi girin.", "Hata", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         if (username.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Lütfen bir kullanıcı adı girin.", "Hata", JOptionPane.ERROR_MESSAGE);
             return;
         }
         
+        // Port numarasını alma
+        int port;
         try {
-            socket = new Socket(serverIP, PORT);
+            port = Integer.parseInt(portField.getText().trim());
+            if (port < 1 || port > 65535) {
+                throw new NumberFormatException("Geçersiz port aralığı");
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Geçerli bir port numarası girin (1-65535).", "Hata", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        try {
+            statusLabel.setText("Bağlanıyor: " + serverIP + ":" + port + "...");
+            
+            // Bağlantı timeout süresi ekleyelim (5 saniye)
+            socket = new Socket(serverIP, port);
+            socket.setSoTimeout(10000); // 10 saniye timeout
+            
             output = new ObjectOutputStream(socket.getOutputStream());
             input = new ObjectInputStream(socket.getInputStream());
             
             // Giriş mesajı gönder
             Message loginMessage = new Message(username, "", MessageType.LOGIN);
             output.writeObject(loginMessage);
+            output.flush(); // Çıktı tamponunu boşaltmayı unutmayalım
             
             // Dinleyici başlat
             clientListener = new ClientListener(this);
             new Thread(clientListener).start();
             
             connected = true;
-            statusLabel.setText("Bağlantı durumu: Bağlı");
-            connectButton.setText("Bağlantıyı Kes");
-            
-            serverIPField.setEnabled(false);
-            usernameField.setEnabled(false);
+            statusLabel.setText("Bağlantı durumu: Bağlı - " + serverIP + ":" + port);
             
             chatField.setEnabled(true);
             sendButton.setEnabled(true);
             
-            addLogMessage("Sunucuya bağlandı: " + serverIP);
+            addLogMessage("Sunucuya bağlandı: " + serverIP + ":" + port);
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Sunucuya bağlanılamadı: " + e.getMessage(), "Bağlantı Hatası", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, 
+                "Sunucuya bağlanılamadı: " + e.getMessage() + "\n" +
+                "AWS sunucusunun çalıştığından ve güvenlik grubunun " + port + " portuna izin verdiğinden emin olun.", 
+                "Bağlantı Hatası", JOptionPane.ERROR_MESSAGE);
+            statusLabel.setText("Bağlantı durumu: Bağlantı hatası");
         }
     }
     
@@ -289,6 +533,7 @@ public class RiskClient extends JFrame {
                 // Çıkış mesajı gönder
                 Message logoutMessage = new Message(username, "", MessageType.LOGOUT);
                 output.writeObject(logoutMessage);
+                output.flush();
                 
                 // Dinleyiciyi durdur
                 if (clientListener != null) {
@@ -302,10 +547,6 @@ public class RiskClient extends JFrame {
                 
                 connected = false;
                 statusLabel.setText("Bağlantı durumu: Bağlı değil");
-                connectButton.setText("Bağlan");
-                
-                serverIPField.setEnabled(true);
-                usernameField.setEnabled(true);
                 
                 chatField.setEnabled(false);
                 sendButton.setEnabled(false);
@@ -314,7 +555,7 @@ public class RiskClient extends JFrame {
                 
                 addLogMessage("Sunucu bağlantısı kesildi.");
             } catch (IOException e) {
-                // Ignore
+                addLogMessage("Bağlantı kapatılırken hata: " + e.getMessage());
             }
         }
     }
@@ -329,6 +570,7 @@ public class RiskClient extends JFrame {
                 try {
                     Message message = new Message(username, chatMessage, MessageType.CHAT);
                     output.writeObject(message);
+                    output.flush();
                     chatField.setText("");
                 } catch (IOException e) {
                     addLogMessage("Mesaj gönderilemedi: " + e.getMessage());
@@ -443,6 +685,7 @@ public class RiskClient extends JFrame {
             Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
             actionMessage.setGameAction(action);
             output.writeObject(actionMessage);
+            output.flush();
             
             currentAction = null;
             selectedTerritory = null;
@@ -495,6 +738,7 @@ public class RiskClient extends JFrame {
                 Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
                 actionMessage.setGameAction(action);
                 output.writeObject(actionMessage);
+                output.flush();
                 
                 currentAction = null;
                 selectedTerritory = null;
@@ -548,6 +792,7 @@ public class RiskClient extends JFrame {
                 Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
                 actionMessage.setGameAction(action);
                 output.writeObject(actionMessage);
+                output.flush();
                 
                 currentAction = null;
                 selectedTerritory = null;
@@ -567,6 +812,7 @@ public class RiskClient extends JFrame {
                 Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
                 actionMessage.setGameAction(action);
                 output.writeObject(actionMessage);
+                output.flush();
                 
                 currentAction = null;
                 selectedTerritory = null;
@@ -585,6 +831,7 @@ public class RiskClient extends JFrame {
             try {
                 Message startGameMessage = new Message(username, "", MessageType.START_GAME);
                 output.writeObject(startGameMessage);
+                output.flush();
             } catch (IOException e) {
                 addLogMessage("Oyun başlatma isteği gönderilemedi: " + e.getMessage());
             }
@@ -605,6 +852,18 @@ public class RiskClient extends JFrame {
     public void addChatMessage(String sender, String message) {
         chatArea.append("[" + sender + "] " + message + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
+    }
+    
+    /**
+     * Bağlantının sağlıklı olup olmadığını kontrol eder.
+     */
+    public void checkConnection() {
+        if (connected && socket != null) {
+            if (socket.isClosed() || !socket.isConnected()) {
+                addLogMessage("Sunucu bağlantısı kesildi.");
+                disconnectFromServer();
+            }
+        }
     }
     
     /**

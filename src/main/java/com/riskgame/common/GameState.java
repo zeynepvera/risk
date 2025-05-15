@@ -54,4 +54,5 @@ public class GameState implements Serializable {
     public void setGameStarted(boolean gameStarted) {
         this.gameStarted = gameStarted;
     }
+    
 }

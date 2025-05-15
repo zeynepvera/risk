@@ -1,22 +1,27 @@
 package com.riskgame.client;
 
 import com.riskgame.common.*;
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.FontMetrics;
+import java.awt.GradientPaint;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Polygon;
 import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.geom.RoundRectangle2D;
+import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 import javax.swing.JPanel;
 
 /**
- * Harita paneli sınıfı.
+ * Enhanced map panel for Risk game.
  */
 public class MapPanel extends JPanel {
     private static final long serialVersionUID = 1L;
@@ -25,15 +30,25 @@ public class MapPanel extends JPanel {
     private GameState gameState;
     private Map<String, Polygon> territoryPolygons;
     private Map<String, Point> territoryCenters;
+    private Map<String, String> continentMap;
+    private Map<String, Color> continentColors;
+    private BufferedImage mapImage;
+    private Font territoryFont;
+    private Font countFont;
     
     public MapPanel(RiskClient client) {
         this.client = client;
         this.territoryPolygons = new HashMap<>();
         this.territoryCenters = new HashMap<>();
+        this.continentMap = new HashMap<>();
         
-        setBackground(Color.WHITE);
+        setBackground(new Color(205, 230, 250)); // Light blue background like an ocean
         
-        // Bölge tıklamaları için dinleyici
+        // Better fonts
+        territoryFont = new Font("Arial", Font.BOLD, 10);
+        countFont = new Font("Arial", Font.BOLD, 14);
+        
+        // Territory click listener
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -48,80 +63,315 @@ public class MapPanel extends JPanel {
             }
         });
         
-        // Bölge polygon'larını oluştur
+        // Initialize continent colors with more appealing colors
+        continentColors = new HashMap<>();
+        continentColors.put("KUZEY_AMERIKA", new Color(255, 150, 150));  // Reddish
+        continentColors.put("GUNEY_AMERIKA", new Color(255, 215, 0));    // Gold
+        continentColors.put("AVRUPA", new Color(100, 149, 237));         // Cornflower Blue
+        continentColors.put("AFRIKA", new Color(255, 165, 0));           // Orange
+        continentColors.put("ASYA", new Color(144, 238, 144));           // Light Green
+        continentColors.put("AVUSTRALYA", new Color(218, 112, 214));     // Orchid
+        
+        // Create territory polygons
         initializeTerritoryPolygons();
+        
+        // Pre-render the map background
+        createMapBackground();
     }
     
     public void setGameState(GameState gameState) {
         this.gameState = gameState;
+        repaint();
     }
     
     /**
-     * Bölge polygonlarını oluşturur.
+     * Creates a pre-rendered map background for better performance
+     */
+    private void createMapBackground() {
+        mapImage = new BufferedImage(1000, 800, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = mapImage.createGraphics();
+        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Draw ocean background
+        g2.setColor(new Color(205, 230, 250));
+        g2.fillRect(0, 0, 1000, 800);
+        
+        // Draw a subtle grid pattern
+        g2.setColor(new Color(195, 220, 240));
+        for (int i = 0; i < 1000; i += 20) {
+            g2.drawLine(i, 0, i, 800);
+            g2.drawLine(0, i, 1000, i);
+        }
+        
+        // Draw continent shapes (faint outlines to give context)
+        drawContinentOutlines(g2);
+        
+        g2.dispose();
+    }
+    
+    /**
+     * Draws continent outlines for the background
+     */
+    private void drawContinentOutlines(Graphics2D g2) {
+        // For each continent, draw a faint outline around all its territories
+        Map<String, Polygon> continentOutlines = new HashMap<>();
+        
+        // This would be enhanced in a full implementation
+        // Here just drawing faint borders for each continent
+        g2.setColor(new Color(180, 210, 230));
+        Stroke dashedStroke = new BasicStroke(3.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
+                1.0f, new float[] {10.0f, 5.0f}, 0.0f);
+        g2.setStroke(dashedStroke);
+        
+        // Simplified continent outlines
+        // North America
+        g2.drawRect(50, 40, 200, 350);
+        
+        // South America
+        g2.drawRect(170, 400, 150, 350);
+        
+        // Europe
+        g2.drawRect(400, 40, 200, 300);
+        
+        // Africa
+        g2.drawRect(400, 300, 200, 350);
+        
+        // Asia
+        g2.drawRect(600, 40, 300, 400);
+        
+        // Australia
+        g2.drawRect(700, 500, 150, 250);
+    }
+    
+    /**
+     * Initialize territory polygons with more natural-looking shapes.
      */
     private void initializeTerritoryPolygons() {
-        // Kuzey Amerika
-        createTerritory("ALASKA", new int[]{50, 100, 150, 100}, new int[]{50, 50, 100, 100}, new Point(100, 75));
-        createTerritory("KUZEYBATI_BOLGE", new int[]{150, 200, 250, 200, 150}, new int[]{100, 50, 100, 150, 100}, new Point(200, 100));
-        createTerritory("GRÖNLAND", new int[]{250, 300, 350, 300, 250}, new int[]{100, 50, 100, 150, 100}, new Point(300, 100));
-        createTerritory("ALBERTA", new int[]{100, 150, 200, 150, 100}, new int[]{100, 100, 150, 200, 150}, new Point(150, 150));
-        createTerritory("ONTARIO", new int[]{200, 250, 300, 250, 200}, new int[]{150, 150, 200, 250, 200}, new Point(250, 200));
-        createTerritory("QUEBEC", new int[]{300, 350, 400, 350, 300}, new int[]{150, 150, 200, 250, 200}, new Point(350, 200));
-        createTerritory("BATI_ABD", new int[]{100, 150, 200, 150, 100}, new int[]{150, 200, 250, 300, 250}, new Point(150, 250));
-        createTerritory("DOGU_ABD", new int[]{200, 250, 300, 250, 200}, new int[]{200, 250, 300, 350, 300}, new Point(250, 300));
-        createTerritory("ORTA_AMERIKA", new int[]{150, 200, 250, 200, 150}, new int[]{300, 350, 400, 450, 400}, new Point(200, 400));
-        
-        // Güney Amerika
-        createTerritory("VENEZUELA", new int[]{200, 250, 300, 250, 200}, new int[]{450, 450, 500, 550, 500}, new Point(250, 500));
-        createTerritory("PERU", new int[]{200, 250, 300, 250, 200}, new int[]{500, 550, 600, 650, 600}, new Point(250, 600));
-        createTerritory("BREZILYA", new int[]{250, 300, 350, 300, 250}, new int[]{500, 500, 550, 600, 550}, new Point(300, 550));
-        createTerritory("ARJANTIN", new int[]{200, 250, 300, 250, 200}, new int[]{600, 650, 700, 750, 700}, new Point(250, 700));
-        
-        // Avrupa
-        createTerritory("IZLANDA", new int[]{400, 450, 500, 450, 400}, new int[]{50, 50, 100, 150, 100}, new Point(450, 100));
-        createTerritory("ISKANDINAVYA", new int[]{450, 500, 550, 500, 450}, new int[]{100, 50, 100, 150, 100}, new Point(500, 100));
-        createTerritory("BUYUK_BRITANYA", new int[]{400, 450, 500, 450, 400}, new int[]{100, 150, 200, 250, 200}, new Point(450, 200));
-        createTerritory("BATI_AVRUPA", new int[]{400, 450, 500, 450, 400}, new int[]{200, 250, 300, 350, 300}, new Point(450, 300));
-        createTerritory("KUZEY_AVRUPA", new int[]{450, 500, 550, 500, 450}, new int[]{150, 150, 200, 250, 200}, new Point(500, 200));
-        createTerritory("GUNEY_AVRUPA", new int[]{450, 500, 550, 500, 450}, new int[]{250, 250, 300, 350, 300}, new Point(500, 300));
-        createTerritory("UKRAYNA", new int[]{500, 550, 600, 550, 500}, new int[]{150, 150, 200, 250, 200}, new Point(550, 200));
-        
-        // Afrika
-        createTerritory("KUZEY_AFRIKA", new int[]{400, 450, 500, 450, 400}, new int[]{300, 350, 400, 450, 400}, new Point(450, 400));
-        createTerritory("MISIR", new int[]{450, 500, 550, 500, 450}, new int[]{350, 350, 400, 450, 400}, new Point(500, 400));
-        createTerritory("DOGU_AFRIKA", new int[]{500, 550, 600, 550, 500}, new int[]{400, 400, 450, 500, 450}, new Point(550, 450));
-        createTerritory("KONGO", new int[]{450, 500, 550, 500, 450}, new int[]{450, 450, 500, 550, 500}, new Point(500, 500));
-        createTerritory("GUNEY_AFRIKA", new int[]{450, 500, 550, 500, 450}, new int[]{550, 550, 600, 650, 600}, new Point(500, 600));
-        createTerritory("MADAGASKAR", new int[]{550, 600, 650, 600, 550}, new int[]{500, 500, 550, 600, 550}, new Point(600, 550));
-        
-        // Asya
-        createTerritory("URAL", new int[]{600, 650, 700, 650, 600}, new int[]{150, 150, 200, 250, 200}, new Point(650, 200));
-        createTerritory("SIBIRYA", new int[]{650, 700, 750, 700, 650}, new int[]{100, 100, 150, 200, 150}, new Point(700, 150));
-        createTerritory("YAKUTSK", new int[]{700, 750, 800, 750, 700}, new int[]{50, 50, 100, 150, 100}, new Point(750, 100));
-        createTerritory("KAMCHATKA", new int[]{750, 800, 850, 800, 750}, new int[]{100, 50, 100, 150, 100}, new Point(800, 100));
-        createTerritory("IRKUTSK", new int[]{700, 750, 800, 750, 700}, new int[]{150, 150, 200, 250, 200}, new Point(750, 200));
-        createTerritory("MOĞOLISTAN", new int[]{700, 750, 800, 750, 700}, new int[]{200, 200, 250, 300, 250}, new Point(750, 250));
-        createTerritory("JAPONYA", new int[]{800, 850, 900, 850, 800}, new int[]{150, 150, 200, 250, 200}, new Point(850, 200));
-        createTerritory("AFGANISTAN", new int[]{600, 650, 700, 650, 600}, new int[]{250, 250, 300, 350, 300}, new Point(650, 300));
-        createTerritory("ÇIN", new int[]{650, 700, 750, 700, 650}, new int[]{300, 300, 350, 400, 350}, new Point(700, 350));
-        createTerritory("ORTA_DOĞU", new int[]{550, 600, 650, 600, 550}, new int[]{300, 300, 350, 400, 350}, new Point(600, 350));
-        createTerritory("HINDISTAN", new int[]{600, 650, 700, 650, 600}, new int[]{350, 350, 400, 450, 400}, new Point(650, 400));
-        createTerritory("SIAM", new int[]{650, 700, 750, 700, 650}, new int[]{400, 400, 450, 500, 450}, new Point(700, 450));
-        
-        // Avustralya
-        createTerritory("ENDONEZYA", new int[]{700, 750, 800, 750, 700}, new int[]{500, 500, 550, 600, 550}, new Point(750, 550));
-        createTerritory("YENI_GINE", new int[]{750, 800, 850, 800, 750}, new int[]{550, 550, 600, 650, 600}, new Point(800, 600));
-        createTerritory("BATI_AVUSTRALYA", new int[]{700, 750, 800, 750, 700}, new int[]{600, 600, 650, 700, 650}, new Point(750, 650));
-        createTerritory("DOGU_AVUSTRALYA", new int[]{750, 800, 850, 800, 750}, new int[]{650, 650, 700, 750, 700}, new Point(800, 700));
+        // North America - More natural looking boundaries
+        createTerritory("ALASKA", "KUZEY_AMERIKA", 
+            new int[]{30, 80, 120, 140, 130, 100, 40}, 
+            new int[]{60, 40, 50, 90, 120, 130, 100}, 
+            new Point(90, 80));
+            
+        createTerritory("KUZEYBATI_BOLGE", "KUZEY_AMERIKA", 
+            new int[]{130, 200, 230, 210, 180, 140}, 
+            new int[]{120, 70, 100, 140, 180, 90}, 
+            new Point(180, 120));
+            
+        createTerritory("GRÖNLAND", "KUZEY_AMERIKA", 
+            new int[]{250, 320, 380, 350, 310, 280, 260}, 
+            new int[]{40, 30, 70, 120, 150, 130, 90}, 
+            new Point(320, 80));
+            
+        createTerritory("ALBERTA", "KUZEY_AMERIKA", 
+            new int[]{100, 140, 180, 190, 160, 120, 90}, 
+            new int[]{130, 90, 180, 230, 260, 220, 170}, 
+            new Point(150, 180));
+            
+        createTerritory("ONTARIO", "KUZEY_AMERIKA", 
+            new int[]{180, 210, 250, 270, 230, 190}, 
+            new int[]{180, 140, 170, 230, 260, 230}, 
+            new Point(220, 200));
+            
+        createTerritory("QUEBEC", "KUZEY_AMERIKA", 
+            new int[]{270, 310, 350, 330, 290, 250}, 
+            new int[]{230, 200, 240, 280, 290, 260}, 
+            new Point(310, 250));
+            
+        createTerritory("BATI_ABD", "KUZEY_AMERIKA", 
+            new int[]{90, 120, 160, 180, 150, 90, 70}, 
+            new int[]{170, 220, 260, 310, 330, 280, 210}, 
+            new Point(130, 250));
+            
+        createTerritory("DOGU_ABD", "KUZEY_AMERIKA", 
+            new int[]{190, 230, 270, 250, 220, 180, 150}, 
+            new int[]{230, 260, 290, 330, 360, 310, 260}, 
+            new Point(220, 290));
+            
+        createTerritory("ORTA_AMERIKA", "KUZEY_AMERIKA", 
+            new int[]{90, 150, 180, 220, 190, 160, 120, 80}, 
+            new int[]{280, 330, 370, 410, 430, 390, 350, 310}, 
+            new Point(150, 350));
+
+        // South America
+        createTerritory("VENEZUELA", "GUNEY_AMERIKA", 
+            new int[]{190, 240, 290, 280, 220, 170}, 
+            new int[]{430, 420, 450, 500, 510, 480}, 
+            new Point(230, 470));
+            
+        createTerritory("PERU", "GUNEY_AMERIKA", 
+            new int[]{170, 220, 270, 250, 200, 150}, 
+            new int[]{480, 510, 550, 600, 620, 550}, 
+            new Point(210, 550));
+            
+        createTerritory("BREZILYA", "GUNEY_AMERIKA", 
+            new int[]{220, 280, 320, 340, 300, 250, 270}, 
+            new int[]{510, 500, 530, 590, 630, 600, 550}, 
+            new Point(280, 570));
+            
+        createTerritory("ARJANTIN", "GUNEY_AMERIKA", 
+            new int[]{200, 250, 300, 280, 230, 180, 170}, 
+            new int[]{620, 600, 630, 690, 730, 700, 650}, 
+            new Point(230, 680));
+
+        // Europe - More natural looking shapes
+        createTerritory("IZLANDA", "AVRUPA", 
+            new int[]{400, 430, 470, 460, 420, 390}, 
+            new int[]{80, 60, 90, 130, 140, 110}, 
+            new Point(430, 100));
+            
+        createTerritory("ISKANDINAVYA", "AVRUPA", 
+            new int[]{460, 490, 530, 560, 520, 480, 450}, 
+            new int[]{130, 70, 60, 110, 160, 180, 140}, 
+            new Point(500, 120));
+            
+        createTerritory("BUYUK_BRITANYA", "AVRUPA", 
+            new int[]{390, 420, 450, 430, 400, 380}, 
+            new int[]{170, 150, 180, 220, 230, 200}, 
+            new Point(410, 190));
+            
+        createTerritory("BATI_AVRUPA", "AVRUPA", 
+            new int[]{400, 430, 470, 450, 420, 390, 370}, 
+            new int[]{230, 220, 250, 290, 320, 310, 260}, 
+            new Point(420, 270));
+            
+        createTerritory("KUZEY_AVRUPA", "AVRUPA", 
+            new int[]{450, 480, 520, 540, 510, 470}, 
+            new int[]{180, 180, 200, 240, 270, 250}, 
+            new Point(500, 220));
+            
+        createTerritory("GUNEY_AVRUPA", "AVRUPA", 
+            new int[]{420, 470, 510, 540, 500, 450}, 
+            new int[]{320, 250, 270, 310, 340, 290}, 
+            new Point(480, 300));
+            
+        createTerritory("UKRAYNA", "AVRUPA", 
+            new int[]{520, 560, 600, 620, 580, 540, 510}, 
+            new int[]{160, 110, 150, 230, 260, 240, 200}, 
+            new Point(560, 190));
+
+        // Africa
+        createTerritory("KUZEY_AFRIKA", "AFRIKA", 
+            new int[]{390, 450, 500, 480, 430, 370, 360}, 
+            new int[]{310, 290, 340, 390, 420, 400, 350}, 
+            new Point(420, 350));
+            
+        createTerritory("MISIR", "AFRIKA", 
+            new int[]{480, 520, 580, 550, 500, 470}, 
+            new int[]{340, 320, 370, 410, 400, 370}, 
+            new Point(520, 370));
+            
+        createTerritory("DOGU_AFRIKA", "AFRIKA", 
+            new int[]{500, 550, 590, 570, 530, 490}, 
+            new int[]{400, 410, 440, 490, 520, 470}, 
+            new Point(540, 450));
+            
+        createTerritory("KONGO", "AFRIKA", 
+            new int[]{430, 490, 530, 510, 470, 410}, 
+            new int[]{420, 470, 520, 560, 580, 510}, 
+            new Point(480, 510));
+            
+        createTerritory("GUNEY_AFRIKA", "AFRIKA", 
+            new int[]{470, 510, 550, 540, 490, 440}, 
+            new int[]{580, 560, 590, 650, 680, 630}, 
+            new Point(510, 620));
+            
+        createTerritory("MADAGASKAR", "AFRIKA", 
+            new int[]{570, 590, 620, 610, 580, 560}, 
+            new int[]{550, 530, 560, 600, 620, 590}, 
+            new Point(590, 570));
+
+        // Asia - More natural-looking shapes
+        createTerritory("URAL", "ASYA", 
+            new int[]{620, 660, 700, 680, 640, 600}, 
+            new int[]{150, 130, 160, 210, 230, 200}, 
+            new Point(650, 180));
+            
+        createTerritory("SIBIRYA", "ASYA", 
+            new int[]{680, 720, 780, 760, 720, 660}, 
+            new int[]{210, 150, 170, 220, 250, 230}, 
+            new Point(720, 190));
+            
+        createTerritory("YAKUTSK", "ASYA", 
+            new int[]{760, 800, 860, 840, 790, 730}, 
+            new int[]{170, 120, 150, 200, 210, 190}, 
+            new Point(800, 170));
+            
+        createTerritory("KAMCHATKA", "ASYA", 
+            new int[]{840, 870, 910, 900, 860, 820}, 
+            new int[]{150, 100, 130, 180, 200, 170}, 
+            new Point(860, 150));
+            
+        createTerritory("IRKUTSK", "ASYA", 
+            new int[]{760, 790, 840, 830, 780, 730}, 
+            new int[]{220, 210, 240, 280, 290, 250}, 
+            new Point(790, 250));
+            
+        createTerritory("MOĞOLISTAN", "ASYA", 
+            new int[]{730, 780, 830, 810, 760, 710}, 
+            new int[]{250, 290, 320, 360, 340, 290}, 
+            new Point(780, 310));
+            
+        createTerritory("JAPONYA", "ASYA", 
+            new int[]{870, 890, 920, 910, 880, 860}, 
+            new int[]{240, 210, 240, 270, 290, 260}, 
+            new Point(890, 250));
+            
+        createTerritory("AFGANISTAN", "ASYA", 
+            new int[]{580, 640, 680, 670, 620, 570}, 
+            new int[]{260, 230, 260, 310, 340, 310}, 
+            new Point(630, 280));
+            
+        createTerritory("ÇIN", "ASYA", 
+            new int[]{710, 760, 810, 800, 750, 690}, 
+            new int[]{290, 340, 380, 420, 410, 350}, 
+            new Point(750, 360));
+            
+        createTerritory("ORTA_DOĞU", "ASYA", 
+            new int[]{530, 570, 620, 610, 560, 520}, 
+            new int[]{310, 310, 340, 380, 400, 360}, 
+            new Point(570, 350));
+            
+        createTerritory("HINDISTAN", "ASYA", 
+            new int[]{620, 670, 710, 700, 660, 610}, 
+            new int[]{340, 350, 380, 430, 450, 380}, 
+            new Point(660, 390));
+            
+        createTerritory("SIAM", "ASYA", 
+            new int[]{690, 730, 770, 760, 720, 680}, 
+            new int[]{410, 410, 450, 500, 510, 450}, 
+            new Point(730, 460));
+
+        // Australia
+        createTerritory("ENDONEZYA", "AVUSTRALYA", 
+            new int[]{720, 760, 800, 790, 750, 710}, 
+            new int[]{490, 480, 520, 560, 570, 530}, 
+            new Point(750, 530));
+            
+        createTerritory("YENI_GINE", "AVUSTRALYA", 
+            new int[]{790, 830, 870, 850, 810, 780}, 
+            new int[]{560, 550, 580, 620, 630, 590}, 
+            new Point(830, 590));
+            
+        createTerritory("BATI_AVUSTRALYA", "AVUSTRALYA", 
+            new int[]{720, 760, 800, 780, 740, 700}, 
+            new int[]{590, 570, 610, 660, 680, 640}, 
+            new Point(750, 630));
+            
+        createTerritory("DOGU_AVUSTRALYA", "AVUSTRALYA", 
+            new int[]{780, 820, 860, 840, 790, 750}, 
+            new int[]{660, 640, 670, 710, 730, 690}, 
+            new Point(810, 680));
     }
     
     /**
-     * Bölge oluşturur.
+     * Create a territory with improved shapes.
      */
-    private void createTerritory(String name, int[] xpoints, int[] ypoints, Point center) {
+    private void createTerritory(String name, String continent, int[] xpoints, int[] ypoints, Point center) {
         Polygon polygon = new Polygon(xpoints, ypoints, xpoints.length);
         territoryPolygons.put(name, polygon);
         territoryCenters.put(name, center);
+        continentMap.put(name, continent);
     }
     
     @Override
@@ -129,46 +379,56 @@ public class MapPanel extends JPanel {
         super.paintComponent(g);
         Graphics2D g2d = (Graphics2D) g;
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
         
-        // Haritayı çiz
+        // Draw pre-rendered background
+        g2d.drawImage(mapImage, 0, 0, this);
+        
+        // Draw the territory overlays
         drawMap(g2d);
     }
     
     /**
-     * Haritayı çizer.
+     * Draw the map with enhanced graphics.
      */
     private void drawMap(Graphics2D g2d) {
         if (gameState == null) {
-            // Boş harita çiz
-            g2d.setColor(Color.LIGHT_GRAY);
+            // Draw empty map with continent colors
             for (Map.Entry<String, Polygon> entry : territoryPolygons.entrySet()) {
-                g2d.fill(entry.getValue());
-                g2d.setColor(Color.BLACK);
-                g2d.draw(entry.getValue());
-                g2d.setColor(Color.LIGHT_GRAY);
+                String territory = entry.getKey();
+                Polygon polygon = entry.getValue();
+                String continent = continentMap.get(territory);
+                Color baseColor = continentColors.get(continent);
+                
+                // Use gradient fill for more depth
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, baseColor, 
+                    0, 50, baseColor.darker(), 
+                    true);
+                g2d.setPaint(gradient);
+                
+                g2d.fill(polygon);
+                g2d.setColor(new Color(50, 50, 50, 150));
+                g2d.setStroke(new BasicStroke(1.5f));
+                g2d.draw(polygon);
+                
+                // Draw territory names
+                g2d.setFont(territoryFont);
+                Point center = territoryCenters.get(territory);
+                drawCenteredString(g2d, getShortName(territory), center.x, center.y - 8, Color.BLACK);
             }
             return;
         }
         
-        // Kıtaları farklı tonlarda çiz
-        Map<String, Color> continentColors = new HashMap<>();
-        continentColors.put("KUZEY_AMERIKA", new Color(255, 200, 200)); // Açık kırmızı
-        continentColors.put("GUNEY_AMERIKA", new Color(255, 255, 200)); // Açık sarı
-        continentColors.put("AVRUPA", new Color(200, 200, 255)); // Açık mavi
-        continentColors.put("AFRIKA", new Color(255, 220, 180)); // Turuncu
-        continentColors.put("ASYA", new Color(200, 255, 200)); // Açık yeşil
-        continentColors.put("AVUSTRALYA", new Color(255, 200, 255)); // Açık mor
-        
-        // Oyuncu renkleri
+        // Player colors with improved aesthetics
         Map<String, Color> playerColors = new HashMap<>();
-        String[] colorNames = {"red", "blue", "green", "yellow", "cyan", "magenta"};
         Color[] colors = {
-            new Color(220, 0, 0),     // Kırmızı
-            new Color(0, 0, 220),     // Mavi
-            new Color(0, 180, 0),     // Yeşil
-            new Color(220, 220, 0),   // Sarı
-            new Color(0, 180, 180),   // Turkuaz
-            new Color(180, 0, 180)    // Mor
+            new Color(220, 50, 50),    // Stronger red
+            new Color(50, 50, 220),    // Stronger blue
+            new Color(50, 170, 50),    // Stronger green
+            new Color(200, 180, 0),    // Gold
+            new Color(0, 180, 180),    // Teal
+            new Color(170, 50, 170)    // Purple
         };
         
         int colorIndex = 0;
@@ -177,105 +437,122 @@ public class MapPanel extends JPanel {
             colorIndex++;
         }
         
-        // Bölgeleri çiz
+        // Draw territories with owner colors
         for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
             String territoryName = entry.getKey();
             Territory territory = entry.getValue();
             Polygon polygon = territoryPolygons.get(territoryName);
             
             if (polygon != null) {
-                // Bölge rengini belirle
+                // Determine territory color based on owner
                 String owner = territory.getOwner();
                 Color baseColor = continentColors.get(territory.getContinent());
                 Color playerColor = playerColors.get(owner);
                 
-                // Seçili bölgeyi vurgula
+                // Highlight selected territory
                 if (territoryName.equals(client.getSelectedTerritory())) {
-                    g2d.setColor(Color.YELLOW);
-                    g2d.fill(polygon);
+                    // Highlight with bright yellow glow
+                    g2d.setColor(new Color(255, 255, 100, 100));
+                    g2d.setStroke(new BasicStroke(4.0f));
+                    g2d.draw(polygon);
+                    
+                    // Fill with slightly brighter color
+                    GradientPaint gradient = new GradientPaint(
+                        0, 0, playerColor.brighter(), 
+                        0, 50, playerColor, 
+                        true);
+                    g2d.setPaint(gradient);
                 } else {
-                    g2d.setColor(playerColor);
-                    g2d.fill(polygon);
+                    // Normal gradient for owned territories
+                    GradientPaint gradient = new GradientPaint(
+                        0, 0, playerColor, 
+                        0, 50, playerColor.darker(), 
+                        true);
+                    g2d.setPaint(gradient);
                 }
                 
-                // Bölge sınırlarını çiz
-                g2d.setColor(Color.BLACK);
+                g2d.fill(polygon);
+                
+                // Draw territory border
+                g2d.setColor(new Color(40, 40, 40, 180));
+                g2d.setStroke(new BasicStroke(1.5f));
                 g2d.draw(polygon);
                 
-                // Birlik sayısını göster
+                // Draw army count with a nice circle background
                 Point center = territoryCenters.get(territoryName);
                 String armyCount = String.valueOf(territory.getArmies());
-                FontMetrics fm = g2d.getFontMetrics();
-                int textWidth = fm.stringWidth(armyCount);
-                int textHeight = fm.getHeight();
                 
+                // Draw circle background for army count
+                int circleSize = 24;
                 g2d.setColor(Color.WHITE);
-                g2d.fillOval(center.x - 10, center.y - 10, 20, 20);
-                g2d.setColor(Color.BLACK);
-                g2d.drawOval(center.x - 10, center.y - 10, 20, 20);
-                g2d.drawString(armyCount, center.x - textWidth / 2, center.y + textHeight / 4);
+                g2d.fillOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
+                g2d.setColor(new Color(50, 50, 50));
+                g2d.setStroke(new BasicStroke(1.5f));
+                g2d.drawOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
                 
-                // Bölge adını göster
-                String shortName = getShortName(territoryName);
-                textWidth = fm.stringWidth(shortName);
-                g2d.drawString(shortName, center.x - textWidth / 2, center.y - 15);
+                // Draw army count
+                g2d.setFont(countFont);
+                drawCenteredString(g2d, armyCount, center.x, center.y + 5, Color.BLACK);
+                
+                // Draw territory name
+                g2d.setFont(territoryFont);
+                drawCenteredString(g2d, getShortName(territoryName), center.x, center.y - 15, Color.BLACK);
             }
         }
         
-        // Mevcut oyuncuyu ve tur bilgisini göster
+        // Draw game status info in a nice panel
+        drawGameStatusPanel(g2d);
+    }
+    
+    /**
+     * Draws a game status panel with current player info
+     */
+    private void drawGameStatusPanel(Graphics2D g2d) {
         String currentPlayer = gameState.getCurrentPlayer();
-        if (currentPlayer != null) {
-            g2d.setColor(Color.BLACK);
-            g2d.drawString("Sıra: " + currentPlayer + " oyuncusunda", 20, 20);
-            
-            // Eğer mevcut oyuncu bu istemcinin kullanıcısıysa, birlik takviyesi bilgisini göster
-            if (currentPlayer.equals(client.getUsername())) {
-                Player player = gameState.getPlayers().get(client.getUsername());
-                if (player != null) {
-                    g2d.drawString("Takviye birlikler: " + player.getReinforcementArmies(), 20, 40);
-                }
+        if (currentPlayer == null) return;
+        
+        // Create a semi-transparent panel in the top-left
+        RoundRectangle2D.Float panel = new RoundRectangle2D.Float(10, 10, 200, 50, 10, 10);
+        g2d.setColor(new Color(255, 255, 255, 200));
+        g2d.fill(panel);
+        g2d.setColor(new Color(100, 100, 100));
+        g2d.setStroke(new BasicStroke(1.5f));
+        g2d.draw(panel);
+        
+        // Draw text
+        g2d.setColor(Color.BLACK);
+        g2d.setFont(new Font("Arial", Font.BOLD, 14));
+        g2d.drawString("Sıra: " + currentPlayer, 20, 30);
+        
+        // If current player is this client's user, show reinforcement info
+        if (currentPlayer.equals(client.getUsername())) {
+            Player player = gameState.getPlayers().get(client.getUsername());
+            if (player != null) {
+                g2d.drawString("Takviye: " + player.getReinforcementArmies() + " birlik", 20, 50);
             }
-        }
-        
-        // Kıta lejantını göster
-        int legendY = 60;
-        g2d.setColor(Color.BLACK);
-        g2d.drawString("Kıtalar:", 20, legendY);
-        legendY += 20;
-        
-        for (Map.Entry<String, Color> entry : continentColors.entrySet()) {
-            g2d.setColor(entry.getValue());
-            g2d.fillRect(20, legendY, 15, 15);
-            g2d.setColor(Color.BLACK);
-            g2d.drawRect(20, legendY, 15, 15);
-            g2d.drawString(entry.getKey(), 40, legendY + 12);
-            legendY += 20;
-        }
-        
-        // Oyuncu lejantını göster
-        legendY += 10;
-        g2d.setColor(Color.BLACK);
-        g2d.drawString("Oyuncular:", 20, legendY);
-        legendY += 20;
-        
-        for (Map.Entry<String, Color> entry : playerColors.entrySet()) {
-            g2d.setColor(entry.getValue());
-            g2d.fillRect(20, legendY, 15, 15);
-            g2d.setColor(Color.BLACK);
-            g2d.drawRect(20, legendY, 15, 15);
-            g2d.drawString(entry.getKey(), 40, legendY + 12);
-            legendY += 20;
         }
     }
     
     /**
-     * Bölge adını kısaltır.
+     * Helper method to draw centered strings
+     */
+    private void drawCenteredString(Graphics2D g2d, String text, int x, int y, Color color) {
+        FontMetrics fm = g2d.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+        
+        g2d.setColor(color);
+        g2d.drawString(text, x - textWidth / 2, y);
+    }
+    
+    /**
+     * Get a short name for territory display
      */
     private String getShortName(String name) {
         if (name.length() <= 5) {
             return name;
         } else {
-            // İlk 5 karakteri al
+            // Get first 5 characters for display
             return name.substring(0, 5);
         }
-    }}
+    }
+}
