@@ -21,32 +21,50 @@ public class ClientListener implements Runnable {
         this.running = false;
     }
     
-    @Override
-    public void run() {
-        try {
-            while (running) {
+   @Override
+public void run() {
+    try {
+        System.out.println("ClientListener başlatıldı");
+        
+        while (running) {
+            try {
+                System.out.println("Sunucudan mesaj bekleniyor...");
                 Message message = (Message) client.getInput().readObject();
+                System.out.println("Mesaj alındı: " + message.getType());
+                
                 if (message != null) {
-                    SwingUtilities.invokeLater(() -> handleMessage(message));
+                    SwingUtilities.invokeLater(() -> {
+                        try {
+                            handleMessage(message);
+                        } catch (Exception e) {
+                            System.err.println("Mesaj işleme hatası: " + e);
+                            e.printStackTrace();
+                        }
+                    });
                 }
+            } catch (Exception e) {
+                System.err.println("Mesaj okuma hatası: " + e);
+                e.printStackTrace();
+                if (running) {
+                    SwingUtilities.invokeLater(() -> {
+                        client.addLogMessage("Sunucu bağlantısı kesildi: " + e);
+                        client.disconnectFromServer();
+                    });
+                }
+                break;
             }
-        } catch (IOException e) {
-            if (running) {
-                SwingUtilities.invokeLater(() -> {
-                    client.addLogMessage("Sunucu bağlantısı kesildi: " + e.getMessage());
-                    client.disconnectFromServer();
-                });
-            }
-        } catch (ClassNotFoundException e) {
-            SwingUtilities.invokeLater(() -> {
-                client.addLogMessage("Geçersiz mesaj formatı: " + e.getMessage());
-                client.disconnectFromServer();
-            });
         }
+    } catch (Exception e) {
+        System.err.println("ClientListener hatası: " + e);
+        e.printStackTrace();
     }
+    
+    System.out.println("ClientListener sonlandırıldı");
+}
     
     /**
      * Gelen mesajı işler.
+     * İyileştirilmiş oyun sonu yönetimi eklendi.
      */
     private void handleMessage(Message message) {
         switch (message.getType()) {
@@ -78,13 +96,21 @@ public class ClientListener implements Runnable {
             case GAME_ENDED:
                 client.addLogMessage(message.getContent());
                 client.setGameControlsEnabled(false);
+                
+                // Kazananı kontrol et
+                String winner = null;
+                if (message.getContent().contains(" kazandı!")) {
+                    // "Oyuncu1 kazandı! Oyun sona erdi." formatından kazananı çıkar
+                    winner = message.getContent().split(" kazandı!")[0].trim();
+                }
+                client.handleGameEnd(winner);
                 break;
             case TURN_CHANGED:
                 client.addLogMessage(message.getContent());
                 break;
             case GAME_STATE:
                 if (message.getGameState() != null) {
-                    client.updateGameState(message.getGameState());
+                            client.updateGameState(message.getGameState());
                 } else {
                     client.addLogMessage("Hata: Geçersiz oyun durumu alındı.");
                 }

@@ -47,4 +47,10 @@ public class Message implements Serializable {
     public void setGameAction(GameAction gameAction) {
         this.gameAction = gameAction;
     }
+    
+    @Override
+    public String toString() {
+        return "Message{type=" + type + ", sender='" + sender + "', content='" + 
+              (content != null ? content.substring(0, Math.min(20, content.length())) + "..." : "null") + "'}";
+    }
 }

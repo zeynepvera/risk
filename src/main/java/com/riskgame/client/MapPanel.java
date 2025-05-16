@@ -22,6 +22,7 @@ import javax.swing.JPanel;
 
 /**
  * Enhanced map panel for Risk game.
+ * Geliştirilmiş harita görselleştirmesi içerir.
  */
 public class MapPanel extends JPanel {
     private static final long serialVersionUID = 1L;
@@ -35,6 +36,7 @@ public class MapPanel extends JPanel {
     private BufferedImage mapImage;
     private Font territoryFont;
     private Font countFont;
+    private String mapStyle = "CLASSIC"; // CLASSIC, MODERN, SATELLITE
     
     public MapPanel(RiskClient client) {
         this.client = client;
@@ -63,14 +65,8 @@ public class MapPanel extends JPanel {
             }
         });
         
-        // Initialize continent colors with more appealing colors
-        continentColors = new HashMap<>();
-        continentColors.put("KUZEY_AMERIKA", new Color(255, 150, 150));  // Reddish
-        continentColors.put("GUNEY_AMERIKA", new Color(255, 215, 0));    // Gold
-        continentColors.put("AVRUPA", new Color(100, 149, 237));         // Cornflower Blue
-        continentColors.put("AFRIKA", new Color(255, 165, 0));           // Orange
-        continentColors.put("ASYA", new Color(144, 238, 144));           // Light Green
-        continentColors.put("AVUSTRALYA", new Color(218, 112, 214));     // Orchid
+        // Initialize continent colors with the selected style
+        initializeColorSchemes();
         
         // Create territory polygons
         initializeTerritoryPolygons();
@@ -79,10 +75,80 @@ public class MapPanel extends JPanel {
         createMapBackground();
     }
     
-    public void setGameState(GameState gameState) {
-        this.gameState = gameState;
+    /**
+     * Harita stiline göre renk şemalarını başlatır.
+     */
+    private void initializeColorSchemes() {
+        continentColors = new HashMap<>();
+        
+        if ("MODERN".equals(mapStyle)) {
+            // Modern renk şeması (daha keskin, tarz görünüm)
+            continentColors.put("KUZEY_AMERIKA", new Color(241, 90, 90));
+            continentColors.put("GUNEY_AMERIKA", new Color(255, 215, 0));
+            continentColors.put("AVRUPA", new Color(79, 134, 247));
+            continentColors.put("AFRIKA", new Color(255, 152, 0));
+            continentColors.put("ASYA", new Color(76, 187, 23));
+            continentColors.put("AVUSTRALYA", new Color(173, 20, 87));
+        } else if ("SATELLITE".equals(mapStyle)) {
+            // Uydu görünümü (daha gerçekçi renkler)
+            continentColors.put("KUZEY_AMERIKA", new Color(139, 169, 110));
+            continentColors.put("GUNEY_AMERIKA", new Color(86, 130, 89));
+            continentColors.put("AVRUPA", new Color(207, 197, 168));
+            continentColors.put("AFRIKA", new Color(209, 178, 110));
+            continentColors.put("ASYA", new Color(177, 170, 141));
+            continentColors.put("AVUSTRALYA", new Color(194, 157, 115));
+        } else {
+            // Classic (varsayılan) renk şeması
+            continentColors.put("KUZEY_AMERIKA", new Color(255, 150, 150));
+            continentColors.put("GUNEY_AMERIKA", new Color(255, 215, 0));
+            continentColors.put("AVRUPA", new Color(100, 149, 237));
+            continentColors.put("AFRIKA", new Color(255, 165, 0));
+            continentColors.put("ASYA", new Color(144, 238, 144));
+            continentColors.put("AVUSTRALYA", new Color(218, 112, 214));
+        }
+    }
+    
+    /**
+     * Harita stilini değiştirir.
+     */
+    public void setMapStyle(String style) {
+        this.mapStyle = style;
+        initializeColorSchemes();
+        createMapBackground();
         repaint();
     }
+    
+   public void setGameState(GameState gameState) {
+    System.out.println("DEBUG: MapPanel.setGameState() çağrıldı");
+    
+    if (gameState == null) {
+        System.out.println("UYARI: gameState parametresi NULL!");
+        return;
+    }
+    
+    this.gameState = gameState;
+    
+    System.out.println("DEBUG: Yeni oyun durumu ayarlandı. Oyuncu sayısı: " + 
+                      gameState.getPlayerList().size() + ", Bölge sayısı: " + 
+                      gameState.getTerritories().size());
+    
+    // Birkaç örnek bölge için birlik sayılarını yazdır
+    // (elbette tüm bölgeleri yazdırmak çok fazla çıktı üretir)
+    if (gameState.getTerritories().size() > 0) {
+        int count = 0;
+        for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+            System.out.println("DEBUG: Bölge='" + entry.getKey() + 
+                              "', Sahip='" + entry.getValue().getOwner() + 
+                              "', Birlik Sayısı=" + entry.getValue().getArmies());
+            
+            count++;
+            if (count >= 5) break; // Sadece ilk 5 bölgeyi göster
+        }
+    }
+    
+    repaint(); // Haritayı yeniden çiz
+    System.out.println("DEBUG: MapPanel.repaint() çağrıldı");
+}
     
     /**
      * Creates a pre-rendered map background for better performance
@@ -93,18 +159,32 @@ public class MapPanel extends JPanel {
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
         // Draw ocean background
-        g2.setColor(new Color(205, 230, 250));
+        if ("SATELLITE".equals(mapStyle)) {
+            // Daha koyu mavi okyanus (uydu görünümü)
+            g2.setColor(new Color(35, 95, 155));
+        } else {
+            // Standart açık mavi okyanus
+            g2.setColor(new Color(205, 230, 250));
+        }
         g2.fillRect(0, 0, 1000, 800);
         
         // Draw a subtle grid pattern
-        g2.setColor(new Color(195, 220, 240));
-        for (int i = 0; i < 1000; i += 20) {
-            g2.drawLine(i, 0, i, 800);
-            g2.drawLine(0, i, 1000, i);
+        if (!"SATELLITE".equals(mapStyle)) {
+            // Satellit modunda grid çizme
+            g2.setColor(new Color(195, 220, 240));
+            for (int i = 0; i < 1000; i += 20) {
+                g2.drawLine(i, 0, i, 800);
+                g2.drawLine(0, i, 1000, i);
+            }
         }
         
         // Draw continent shapes (faint outlines to give context)
         drawContinentOutlines(g2);
+        
+        // Harita adını çiz
+        g2.setFont(new Font("Arial", Font.BOLD, 12));
+        g2.setColor(new Color(50, 50, 50, 120));
+        g2.drawString("Risk Game Map - " + mapStyle + " Style", 20, 780);
         
         g2.dispose();
     }
@@ -118,9 +198,32 @@ public class MapPanel extends JPanel {
         
         // This would be enhanced in a full implementation
         // Here just drawing faint borders for each continent
-        g2.setColor(new Color(180, 210, 230));
-        Stroke dashedStroke = new BasicStroke(3.0f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
-                1.0f, new float[] {10.0f, 5.0f}, 0.0f);
+        
+        if ("SATELLITE".equals(mapStyle)) {
+            g2.setColor(new Color(255, 255, 255, 40)); // Uydu görünümünde hafif beyaz sınırlar
+        } else if ("MODERN".equals(mapStyle)) {
+            g2.setColor(new Color(50, 50, 50, 70)); // Modern görünümde koyu sınırlar
+        } else {
+            g2.setColor(new Color(180, 210, 230)); // Klasik görünümde standart sınırlar
+        }
+        
+        // Çizgi stili - stil seçimine göre değişir
+        float strokeWidth = "MODERN".equals(mapStyle) ? 2.0f : 3.0f;
+        Stroke dashedStroke;
+        
+        if ("SATELLITE".equals(mapStyle)) {
+            // Uydu görünümünde daha ince kesikli çizgiler
+            dashedStroke = new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
+                    1.0f, new float[] {5.0f, 3.0f}, 0.0f);
+        } else if ("MODERN".equals(mapStyle)) {
+            // Modern görünümde kesintisiz çizgiler
+            dashedStroke = new BasicStroke(strokeWidth);
+        } else {
+            // Klasik kesikli çizgiler
+            dashedStroke = new BasicStroke(strokeWidth, BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND,
+                    1.0f, new float[] {10.0f, 5.0f}, 0.0f);
+        }
+        
         g2.setStroke(dashedStroke);
         
         // Simplified continent outlines
@@ -374,135 +477,165 @@ public class MapPanel extends JPanel {
         continentMap.put(name, continent);
     }
     
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2d = (Graphics2D) g;
-        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-        
-        // Draw pre-rendered background
-        g2d.drawImage(mapImage, 0, 0, this);
-        
-        // Draw the territory overlays
-        drawMap(g2d);
+ @Override
+protected void paintComponent(Graphics g) {
+    System.out.println("DEBUG: MapPanel.paintComponent() çağrıldı");
+    
+    super.paintComponent(g);
+    Graphics2D g2d = (Graphics2D) g;
+    g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+    g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+    
+    // Draw pre-rendered background
+    g2d.drawImage(mapImage, 0, 0, this);
+    
+    if (gameState != null) {
+        System.out.println("DEBUG: Oyun durumu var, harita çiziliyor. Oyuncu sayısı: " + 
+                         gameState.getPlayerList().size() + ", Bölge sayısı: " + 
+                         gameState.getTerritories().size());
+    } else {
+        System.out.println("DEBUG: Oyun durumu NULL, boş harita çizilecek");
     }
+    
+    // Draw the territory overlays
+    drawMap(g2d);
+}
     
     /**
      * Draw the map with enhanced graphics.
      */
-    private void drawMap(Graphics2D g2d) {
-        if (gameState == null) {
-            // Draw empty map with continent colors
-            for (Map.Entry<String, Polygon> entry : territoryPolygons.entrySet()) {
-                String territory = entry.getKey();
-                Polygon polygon = entry.getValue();
-                String continent = continentMap.get(territory);
-                Color baseColor = continentColors.get(continent);
+   private void drawMap(Graphics2D g2d) {
+    if (gameState == null) {
+        // Draw empty map with continent colors
+        for (Map.Entry<String, Polygon> entry : territoryPolygons.entrySet()) {
+            String territory = entry.getKey();
+            Polygon polygon = entry.getValue();
+            String continent = continentMap.get(territory);
+            Color baseColor = continentColors.get(continent);
+            
+            // Use gradient fill for more depth
+            GradientPaint gradient = new GradientPaint(
+                0, 0, baseColor, 
+                0, 50, baseColor.darker(), 
+                true);
+            g2d.setPaint(gradient);
+            
+            g2d.fill(polygon);
+            g2d.setColor(new Color(50, 50, 50, 150));
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.draw(polygon);
+            
+            // Draw territory names
+            g2d.setFont(territoryFont);
+            Point center = territoryCenters.get(territory);
+            drawCenteredString(g2d, getShortName(territory), center.x, center.y - 8, Color.BLACK);
+        }
+        System.out.println("DEBUG: Oyun durumu boş, harita çizilemedi!");
+        return;
+    }
+    
+    System.out.println("\n----- DEBUG: HARITA ÇIZILIYOR -----");
+    System.out.println("Oyun durumu: Oyun başladı=" + gameState.isGameStarted() + ", Mevcut oyuncu=" + gameState.getCurrentPlayer());
+    System.out.println("Toplam bölge sayısı: " + gameState.getTerritories().size());
+    
+    // Player colors with improved aesthetics
+    Map<String, Color> playerColors = new HashMap<>();
+    Color[] colors = {
+        new Color(220, 50, 50),    // Stronger red
+        new Color(50, 50, 220),    // Stronger blue
+        new Color(50, 170, 50),    // Stronger green
+        new Color(200, 180, 0),    // Gold
+        new Color(0, 180, 180),    // Teal
+        new Color(170, 50, 170)    // Purple
+    };
+    
+    int colorIndex = 0;
+    for (String playerName : gameState.getPlayerList()) {
+        playerColors.put(playerName, colors[colorIndex % colors.length]);
+        colorIndex++;
+        System.out.println("Oyuncu: " + playerName + " için renk indeksi: " + colorIndex);
+    }
+    
+    // Draw territories with owner colors
+    for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+        String territoryName = entry.getKey();
+        Territory territory = entry.getValue();
+        Polygon polygon = territoryPolygons.get(territoryName);
+        
+        if (polygon != null) {
+            // Debug: Bölge bilgilerini yazdır
+            System.out.println("Çiziliyor: Bölge='" + territoryName + 
+                               "', Sahip='" + territory.getOwner() + 
+                               "', Birlik Sayısı=" + territory.getArmies());
+            
+            // Determine territory color based on owner
+            String owner = territory.getOwner();
+            Color baseColor = continentColors.get(territory.getContinent());
+            Color playerColor = playerColors.get(owner);
+            
+            // Highlight selected territory
+            if (territoryName.equals(client.getSelectedTerritory())) {
+                // Highlight with bright yellow glow
+                g2d.setColor(new Color(255, 255, 100, 100));
+                g2d.setStroke(new BasicStroke(4.0f));
+                g2d.draw(polygon);
                 
-                // Use gradient fill for more depth
+                System.out.println("DEBUG: Seçili bölge çiziliyor: " + territoryName);
+                
+                // Fill with slightly brighter color
                 GradientPaint gradient = new GradientPaint(
-                    0, 0, baseColor, 
-                    0, 50, baseColor.darker(), 
+                    0, 0, playerColor.brighter(), 
+                    0, 50, playerColor, 
                     true);
                 g2d.setPaint(gradient);
-                
-                g2d.fill(polygon);
-                g2d.setColor(new Color(50, 50, 50, 150));
-                g2d.setStroke(new BasicStroke(1.5f));
-                g2d.draw(polygon);
-                
-                // Draw territory names
-                g2d.setFont(territoryFont);
-                Point center = territoryCenters.get(territory);
-                drawCenteredString(g2d, getShortName(territory), center.x, center.y - 8, Color.BLACK);
+            } else {
+                // Normal gradient for owned territories
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, playerColor, 
+                    0, 50, playerColor.darker(), 
+                    true);
+                g2d.setPaint(gradient);
             }
-            return;
-        }
-        
-        // Player colors with improved aesthetics
-        Map<String, Color> playerColors = new HashMap<>();
-        Color[] colors = {
-            new Color(220, 50, 50),    // Stronger red
-            new Color(50, 50, 220),    // Stronger blue
-            new Color(50, 170, 50),    // Stronger green
-            new Color(200, 180, 0),    // Gold
-            new Color(0, 180, 180),    // Teal
-            new Color(170, 50, 170)    // Purple
-        };
-        
-        int colorIndex = 0;
-        for (String playerName : gameState.getPlayerList()) {
-            playerColors.put(playerName, colors[colorIndex % colors.length]);
-            colorIndex++;
-        }
-        
-        // Draw territories with owner colors
-        for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
-            String territoryName = entry.getKey();
-            Territory territory = entry.getValue();
-            Polygon polygon = territoryPolygons.get(territoryName);
             
-            if (polygon != null) {
-                // Determine territory color based on owner
-                String owner = territory.getOwner();
-                Color baseColor = continentColors.get(territory.getContinent());
-                Color playerColor = playerColors.get(owner);
-                
-                // Highlight selected territory
-                if (territoryName.equals(client.getSelectedTerritory())) {
-                    // Highlight with bright yellow glow
-                    g2d.setColor(new Color(255, 255, 100, 100));
-                    g2d.setStroke(new BasicStroke(4.0f));
-                    g2d.draw(polygon);
-                    
-                    // Fill with slightly brighter color
-                    GradientPaint gradient = new GradientPaint(
-                        0, 0, playerColor.brighter(), 
-                        0, 50, playerColor, 
-                        true);
-                    g2d.setPaint(gradient);
-                } else {
-                    // Normal gradient for owned territories
-                    GradientPaint gradient = new GradientPaint(
-                        0, 0, playerColor, 
-                        0, 50, playerColor.darker(), 
-                        true);
-                    g2d.setPaint(gradient);
-                }
-                
-                g2d.fill(polygon);
-                
-                // Draw territory border
-                g2d.setColor(new Color(40, 40, 40, 180));
-                g2d.setStroke(new BasicStroke(1.5f));
-                g2d.draw(polygon);
-                
-                // Draw army count with a nice circle background
-                Point center = territoryCenters.get(territoryName);
-                String armyCount = String.valueOf(territory.getArmies());
-                
-                // Draw circle background for army count
-                int circleSize = 24;
-                g2d.setColor(Color.WHITE);
-                g2d.fillOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
-                g2d.setColor(new Color(50, 50, 50));
-                g2d.setStroke(new BasicStroke(1.5f));
-                g2d.drawOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
-                
-                // Draw army count
-                g2d.setFont(countFont);
-                drawCenteredString(g2d, armyCount, center.x, center.y + 5, Color.BLACK);
-                
-                // Draw territory name
-                g2d.setFont(territoryFont);
-                drawCenteredString(g2d, getShortName(territoryName), center.x, center.y - 15, Color.BLACK);
-            }
+            g2d.fill(polygon);
+            
+            // Draw territory border
+            g2d.setColor(new Color(40, 40, 40, 180));
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.draw(polygon);
+            
+            // Draw army count with a nice circle background
+            Point center = territoryCenters.get(territoryName);
+            String armyCount = String.valueOf(territory.getArmies());
+            
+            // Debug: Birlik sayısını yazdır
+            System.out.println("DEBUG: Birlik sayısı çiziliyor: Bölge='" + territoryName + 
+                              "', Değer='" + armyCount + "'");
+            
+            // Draw circle background for army count
+            int circleSize = 24;
+            g2d.setColor(Color.WHITE);
+            g2d.fillOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
+            g2d.setColor(new Color(50, 50, 50));
+            g2d.setStroke(new BasicStroke(1.5f));
+            g2d.drawOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
+            
+            // Draw army count
+            g2d.setFont(countFont);
+            drawCenteredString(g2d, armyCount, center.x, center.y + 5, Color.BLACK);
+            
+            // Draw territory name
+            g2d.setFont(territoryFont);
+            drawCenteredString(g2d, getShortName(territoryName), center.x, center.y - 15, Color.BLACK);
+        } else {
+            System.err.println("HATA: '" + territoryName + "' bölgesi için polygon bulunamadı!");
         }
-        
-        // Draw game status info in a nice panel
-        drawGameStatusPanel(g2d);
     }
+    
+    // Draw game status info in a nice panel
+    drawGameStatusPanel(g2d);
+    System.out.println("----- DEBUG: HARITA ÇIZIM TAMAMLANDI -----\n");
+}
     
     /**
      * Draws a game status panel with current player info
@@ -539,6 +672,7 @@ public class MapPanel extends JPanel {
     private void drawCenteredString(Graphics2D g2d, String text, int x, int y, Color color) {
         FontMetrics fm = g2d.getFontMetrics();
         int textWidth = fm.stringWidth(text);
+       
         
         g2d.setColor(color);
         g2d.drawString(text, x - textWidth / 2, y);

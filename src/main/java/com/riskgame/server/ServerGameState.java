@@ -311,17 +311,26 @@ public class ServerGameState implements Serializable {
     /**
      * Birlik yerleştirir.
      */
-    public void placeArmy(String playerName, String territoryName, int armies) {
-        if (!canPlaceArmy(playerName, territoryName, armies)) {
-            return;
-        }
-
-        Player player = players.get(playerName);
-        Territory territory = territories.get(territoryName);
-
-        territory.addArmies(armies);
-        player.setReinforcementArmies(player.getReinforcementArmies() - armies);
+  public void placeArmy(String playerName, String territoryName, int armies) {
+    System.out.println("placeArmy çağrıldı: Oyuncu=" + playerName + ", Bölge=" + territoryName + ", Birlik=" + armies);
+    
+    if (!canPlaceArmy(playerName, territoryName, armies)) {
+        System.out.println("canPlaceArmy kontrolleri başarısız!");
+        return;
     }
+
+    Player player = players.get(playerName);
+    Territory territory = territories.get(territoryName);
+
+    // Birlik eklemedem önce
+    System.out.println("Önceki birlik sayısı: " + territory.getArmies());
+    
+    territory.addArmies(armies);
+    player.setReinforcementArmies(player.getReinforcementArmies() - armies);
+    
+    // Birlik ekledikten sonra
+    System.out.println("Yeni birlik sayısı: " + territory.getArmies());
+}
 
     /**
      * Saldırı hareketinin geçerli olup olmadığını kontrol eder.
