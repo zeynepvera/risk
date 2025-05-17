@@ -1,9 +1,7 @@
 package com.riskgame.common;
-
 import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
-
 /**
  * Bölge sınıfı. Oyun haritasındaki bir bölgeyi temsil eder.
  */
@@ -33,18 +31,25 @@ public class Territory implements Serializable {
     
     public void setOwner(String owner) {
         this.owner = owner;
+        System.out.println("Territory.setOwner: " + name + " bölgesinin sahibi " + owner + " olarak ayarlandı.");
     }
     
     public void setArmies(int armies) {
+        int oldValue = this.armies;
         this.armies = armies;
+        System.out.println("Territory.setArmies: " + name + " bölgesinde birlik sayısı " + oldValue + " -> " + armies + " olarak değiştirildi.");
     }
     
     public void addArmies(int count) {
+        int oldValue = this.armies;
         this.armies += count;
+        System.out.println("Territory.addArmies: " + name + " bölgesine " + count + " birlik eklendi. Yeni toplam: " + this.armies + " (önceki: " + oldValue + ")");
     }
     
     public void removeArmies(int count) {
+        int oldValue = this.armies;
         this.armies = Math.max(0, this.armies - count);
+        System.out.println("Territory.removeArmies: " + name + " bölgesinden " + count + " birlik çıkarıldı. Yeni toplam: " + this.armies + " (önceki: " + oldValue + ")");
     }
     
     public String getName() {
@@ -65,5 +70,19 @@ public class Territory implements Serializable {
     
     public Set<String> getNeighbors() {
         return neighbors;
+    }
+    
+    @Override
+    public String toString() {
+        return "Territory{name='" + name + "', owner='" + owner + "', armies=" + armies + "}";
+    }
+    
+    // Derin kopyalama için bir kopya constructor'ı ekleyin
+    public Territory(Territory other) {
+        this.name = other.name;
+        this.continent = other.continent;
+        this.owner = other.owner;
+        this.armies = other.armies;
+        this.neighbors = new HashSet<>(other.neighbors);
     }
 }

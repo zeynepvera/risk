@@ -118,39 +118,34 @@ public class MapPanel extends JPanel {
         repaint();
     }
     
-   public void setGameState(GameState gameState) {
-    System.out.println("DEBUG: MapPanel.setGameState() çağrıldı");
+public void setGameState(GameState gameState) {
+    System.out.println("\n=== HARITA PANELI: OYUN DURUMU GÜNCELLENIYOR ===");
     
     if (gameState == null) {
-        System.out.println("UYARI: gameState parametresi NULL!");
+        System.out.println("GameState null, harita temizleniyor...");
+        this.gameState = null;
+        repaint();
         return;
     }
     
+    // Yeni oyun durumunu ata
     this.gameState = gameState;
     
-    System.out.println("DEBUG: Yeni oyun durumu ayarlandı. Oyuncu sayısı: " + 
-                      gameState.getPlayerList().size() + ", Bölge sayısı: " + 
-                      gameState.getTerritories().size());
-    
-    // Birkaç örnek bölge için birlik sayılarını yazdır
-    // (elbette tüm bölgeleri yazdırmak çok fazla çıktı üretir)
-    if (gameState.getTerritories().size() > 0) {
-        int count = 0;
-        for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
-            System.out.println("DEBUG: Bölge='" + entry.getKey() + 
-                              "', Sahip='" + entry.getValue().getOwner() + 
-                              "', Birlik Sayısı=" + entry.getValue().getArmies());
-            
-            count++;
-            if (count >= 5) break; // Sadece ilk 5 bölgeyi göster
-        }
+    // Bölge durumlarını log'a yaz
+    System.out.println("Haritada gösterilecek bölge durumları:");
+    for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+        String territoryName = entry.getKey();
+        Territory territory = entry.getValue();
+        System.out.println("Bölge: " + territoryName + 
+                         " | Sahibi: " + territory.getOwner() + 
+                         " | Birlik: " + territory.getArmies());
     }
     
-    repaint(); // Haritayı yeniden çiz
-    System.out.println("DEBUG: MapPanel.repaint() çağrıldı");
-}
+    // Ekranı zorla yenile
+    repaint();
     
-    /**
+    System.out.println("=== HARITA GÜNCELLEME TAMAMLANDI ===\n");
+}    /**
      * Creates a pre-rendered map background for better performance
      */
     private void createMapBackground() {
@@ -504,7 +499,7 @@ protected void paintComponent(Graphics g) {
     /**
      * Draw the map with enhanced graphics.
      */
-   private void drawMap(Graphics2D g2d) {
+private void drawMap(Graphics2D g2d) {
     if (gameState == null) {
         // Draw empty map with continent colors
         for (Map.Entry<String, Polygon> entry : territoryPolygons.entrySet()) {
@@ -530,13 +525,27 @@ protected void paintComponent(Graphics g) {
             Point center = territoryCenters.get(territory);
             drawCenteredString(g2d, getShortName(territory), center.x, center.y - 8, Color.BLACK);
         }
-        System.out.println("DEBUG: Oyun durumu boş, harita çizilemedi!");
+        System.out.println("UYARI: Oyun durumu boş, harita çizilemedi!");
         return;
     }
     
-    System.out.println("\n----- DEBUG: HARITA ÇIZILIYOR -----");
+    System.out.println("\n=== HARITA CIZILIYOR ===");
     System.out.println("Oyun durumu: Oyun başladı=" + gameState.isGameStarted() + ", Mevcut oyuncu=" + gameState.getCurrentPlayer());
     System.out.println("Toplam bölge sayısı: " + gameState.getTerritories().size());
+    
+    // Bölgelerin sahibini ve birlik sayısını listele (hafıza adresleri dahil) 
+    System.out.println("\n*** MEVCUT OYUN DURUMU (Harita çizimi başlangıcı) ***");
+    System.out.println("GameState nesnesi: " + gameState);
+    System.out.println("Territories nesnesi: " + gameState.getTerritories());
+    for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+        String territoryName = entry.getKey();
+        Territory territory = entry.getValue();
+        System.out.println("Bölge: " + territoryName + 
+                          " | Sahibi: " + territory.getOwner() + 
+                          " | Birlik Sayısı: " + territory.getArmies() + 
+                          " | Nesne: " + territory);
+    }
+    System.out.println("*** OYUN DURUMU SONU ***\n");
     
     // Player colors with improved aesthetics
     Map<String, Color> playerColors = new HashMap<>();
@@ -553,7 +562,6 @@ protected void paintComponent(Graphics g) {
     for (String playerName : gameState.getPlayerList()) {
         playerColors.put(playerName, colors[colorIndex % colors.length]);
         colorIndex++;
-        System.out.println("Oyuncu: " + playerName + " için renk indeksi: " + colorIndex);
     }
     
     // Draw territories with owner colors
@@ -563,15 +571,19 @@ protected void paintComponent(Graphics g) {
         Polygon polygon = territoryPolygons.get(territoryName);
         
         if (polygon != null) {
-            // Debug: Bölge bilgilerini yazdır
-            System.out.println("Çiziliyor: Bölge='" + territoryName + 
-                               "', Sahip='" + territory.getOwner() + 
-                               "', Birlik Sayısı=" + territory.getArmies());
+            // Log: Çizilen bölge
+            System.out.println("Çiziliyor: " + territoryName + 
+                              " | Sahibi: " + territory.getOwner() + 
+                              " | Birlik: " + territory.getArmies());
             
             // Determine territory color based on owner
             String owner = territory.getOwner();
-            Color baseColor = continentColors.get(territory.getContinent());
             Color playerColor = playerColors.get(owner);
+            
+            if (playerColor == null) {
+                System.err.println("HATA: " + owner + " oyuncusu için renk bulunamadı!");
+                playerColor = Color.GRAY; // Fallback color
+            }
             
             // Highlight selected territory
             if (territoryName.equals(client.getSelectedTerritory())) {
@@ -579,8 +591,6 @@ protected void paintComponent(Graphics g) {
                 g2d.setColor(new Color(255, 255, 100, 100));
                 g2d.setStroke(new BasicStroke(4.0f));
                 g2d.draw(polygon);
-                
-                System.out.println("DEBUG: Seçili bölge çiziliyor: " + territoryName);
                 
                 // Fill with slightly brighter color
                 GradientPaint gradient = new GradientPaint(
@@ -606,11 +616,13 @@ protected void paintComponent(Graphics g) {
             
             // Draw army count with a nice circle background
             Point center = territoryCenters.get(territoryName);
-            String armyCount = String.valueOf(territory.getArmies());
+            if (center == null) {
+                System.err.println("HATA: " + territoryName + " bölgesi için merkez noktası bulunamadı!");
+                continue;
+            }
             
-            // Debug: Birlik sayısını yazdır
-            System.out.println("DEBUG: Birlik sayısı çiziliyor: Bölge='" + territoryName + 
-                              "', Değer='" + armyCount + "'");
+            // Birlik sayısını alın (asla null olmamalı)
+            String armyCount = String.valueOf(territory.getArmies());
             
             // Draw circle background for army count
             int circleSize = 24;
@@ -620,7 +632,7 @@ protected void paintComponent(Graphics g) {
             g2d.setStroke(new BasicStroke(1.5f));
             g2d.drawOval(center.x - circleSize/2, center.y - circleSize/2, circleSize, circleSize);
             
-            // Draw army count
+            // Draw army count - çok önemli!
             g2d.setFont(countFont);
             drawCenteredString(g2d, armyCount, center.x, center.y + 5, Color.BLACK);
             
@@ -634,9 +646,8 @@ protected void paintComponent(Graphics g) {
     
     // Draw game status info in a nice panel
     drawGameStatusPanel(g2d);
-    System.out.println("----- DEBUG: HARITA ÇIZIM TAMAMLANDI -----\n");
-}
-    
+    System.out.println("=== HARITA CIZIMI TAMAMLANDI ===\n");
+}    
     /**
      * Draws a game status panel with current player info
      */

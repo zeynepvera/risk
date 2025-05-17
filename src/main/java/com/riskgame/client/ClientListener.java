@@ -21,52 +21,54 @@ public class ClientListener implements Runnable {
         this.running = false;
     }
     
-   @Override
-public void run() {
-    try {
-        System.out.println("ClientListener başlatıldı");
-        
-        while (running) {
-            try {
-                System.out.println("Sunucudan mesaj bekleniyor...");
-                Message message = (Message) client.getInput().readObject();
-                System.out.println("Mesaj alındı: " + message.getType());
-                
-                if (message != null) {
-                    SwingUtilities.invokeLater(() -> {
-                        try {
-                            handleMessage(message);
-                        } catch (Exception e) {
-                            System.err.println("Mesaj işleme hatası: " + e);
-                            e.printStackTrace();
-                        }
-                    });
+    @Override
+    public void run() {
+        try {
+            System.out.println("ClientListener başlatıldı");
+            
+            while (running) {
+                try {
+                    System.out.println("Sunucudan mesaj bekleniyor...");
+                    Message message = (Message) client.getInput().readObject();
+                    System.out.println("Mesaj alındı: " + message.getType());
+                    
+                    if (message != null) {
+                        SwingUtilities.invokeLater(() -> {
+                            try {
+                                handleMessage(message);
+                            } catch (Exception e) {
+                                System.err.println("Mesaj işleme hatası: " + e);
+                                e.printStackTrace();
+                            }
+                        });
+                    }
+                } catch (Exception e) {
+                    System.err.println("Mesaj okuma hatası: " + e);
+                    e.printStackTrace();
+                    if (running) {
+                        SwingUtilities.invokeLater(() -> {
+                            client.addLogMessage("Sunucu bağlantısı kesildi: " + e);
+                            client.disconnectFromServer();
+                        });
+                        break;
+                    }
                 }
-            } catch (Exception e) {
-                System.err.println("Mesaj okuma hatası: " + e);
-                e.printStackTrace();
-                if (running) {
-                    SwingUtilities.invokeLater(() -> {
-                        client.addLogMessage("Sunucu bağlantısı kesildi: " + e);
-                        client.disconnectFromServer();
-                    });
-                }
-                break;
             }
+        } catch (Exception e) {
+            System.err.println("ClientListener hatası: " + e);
+            e.printStackTrace();
         }
-    } catch (Exception e) {
-        System.err.println("ClientListener hatası: " + e);
-        e.printStackTrace();
+        
+        System.out.println("ClientListener sonlandırıldı");
     }
-    
-    System.out.println("ClientListener sonlandırıldı");
-}
     
     /**
      * Gelen mesajı işler.
      * İyileştirilmiş oyun sonu yönetimi eklendi.
      */
     private void handleMessage(Message message) {
+        System.out.println("Mesaj işleniyor: " + message.getType());
+        
         switch (message.getType()) {
             case CHAT:
                 client.addChatMessage(message.getSender(), message.getContent());
@@ -80,6 +82,9 @@ public void run() {
             case PLAYER_ELIMINATED:
                 client.addLogMessage(message.getContent());
                 break;
+            case PLAYER_READY:  // YENİ EKLENEN
+                client.addLogMessage(message.getContent()); // Hazır oyuncuları göster
+                break;
             case GAME_READY:
                 client.addLogMessage(message.getContent());
                 int response = JOptionPane.showConfirmDialog(client, 
@@ -87,7 +92,15 @@ public void run() {
                                                           "Oyun Hazır", 
                                                           JOptionPane.YES_NO_OPTION);
                 if (response == JOptionPane.YES_OPTION) {
-                    client.startGame();
+                    // START_GAME yerine PLAYER_READY gönder
+                    try {
+                        Message readyMessage = new Message(client.getUsername(), "", MessageType.PLAYER_READY);
+                        client.getOutput().writeObject(readyMessage);
+                        client.getOutput().flush();
+                        client.addLogMessage("Oyuna başlamak için hazır olduğunuzu bildirdiniz. Diğer oyuncular bekleniyor...");
+                    } catch (IOException e) {
+                        client.addLogMessage("Hazır mesajı gönderilemedi: " + e.getMessage());
+                    }
                 }
                 break;
             case GAME_STARTED:
@@ -110,12 +123,16 @@ public void run() {
                 break;
             case GAME_STATE:
                 if (message.getGameState() != null) {
-                            client.updateGameState(message.getGameState());
+                    System.out.println("Yeni oyun durumu alındı, güncelleniyor...");
+                    client.updateGameState(message.getGameState());
+                    System.out.println("Oyun durumu güncellendi.");
                 } else {
                     client.addLogMessage("Hata: Geçersiz oyun durumu alındı.");
                 }
                 break;
             case MOVE_APPLIED:
+                client.addLogMessage(message.getContent());
+                break;
             case INVALID_MOVE:
                 client.addLogMessage(message.getContent());
                 break;

@@ -308,30 +308,33 @@ public class ServerGameState implements Serializable {
         return true;
     }
 
-    /**
-     * Birlik yerleştirir.
-     */
-  public void placeArmy(String playerName, String territoryName, int armies) {
+   /**
+ * Birlik yerleştirir.
+ */
+public void placeArmy(String playerName, String territoryName, int armies) {
+    System.out.println("\n=== BIRLIK YERLESTIRME ISLEMI ===");
     System.out.println("placeArmy çağrıldı: Oyuncu=" + playerName + ", Bölge=" + territoryName + ", Birlik=" + armies);
     
     if (!canPlaceArmy(playerName, territoryName, armies)) {
-        System.out.println("canPlaceArmy kontrolleri başarısız!");
+        System.out.println("HATA: canPlaceArmy kontrolleri başarısız!");
         return;
     }
 
     Player player = players.get(playerName);
     Territory territory = territories.get(territoryName);
 
-    // Birlik eklemedem önce
+    // Birlik eklemeden önce
     System.out.println("Önceki birlik sayısı: " + territory.getArmies());
     
+    // Birlik ekleme - bu metodda sorun olabilir
     territory.addArmies(armies);
     player.setReinforcementArmies(player.getReinforcementArmies() - armies);
     
     // Birlik ekledikten sonra
     System.out.println("Yeni birlik sayısı: " + territory.getArmies());
+    System.out.println("Kalan takviye birlik: " + player.getReinforcementArmies());
+    System.out.println("=== BIRLIK YERLESTIRME TAMAMLANDI ===\n");
 }
-
     /**
      * Saldırı hareketinin geçerli olup olmadığını kontrol eder.
      */

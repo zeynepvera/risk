@@ -15,6 +15,7 @@ import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.geom.RoundRectangle2D;
+import java.util.Map;
 
 /**
  * Risk oyunu için başlangıç ve bitiş ekranlarını içeren genişletilmiş istemci
@@ -829,6 +830,8 @@ private void initializeMenuScreen() {
                 fortifyButton.setBackground(Color.LIGHT_GRAY);
                 statusLabel.setText("Takviye için önce kaynak bölgeyi seçin");
                 break;
+                
+                
             default:
                 break;
         }
@@ -864,6 +867,8 @@ private void initializeMenuScreen() {
                 case ATTACK:
                     handleAttack(territoryName);
                     break;
+                    
+                    
                 case FORTIFY:
                     handleFortify(territoryName);
                     break;
@@ -875,40 +880,41 @@ private void initializeMenuScreen() {
         mapPanel.repaint();
     }
 
-    /**
-     * Birlik yerleştirme işlemini gerçekleştirir.
-     */
-    private void handlePlaceArmy(String territoryName) {
-        Territory territory = gameState.getTerritories().get(territoryName);
+  /**
+ * Birlik yerleştirme işlemini gerçekleştirir.
+ */
+private void handlePlaceArmy(String territoryName) {
+    Territory territory = gameState.getTerritories().get(territoryName);
 
-        if (!territory.getOwner().equals(username)) {
-            addLogMessage("Sadece kendi bölgelerinize birlik yerleştirebilirsiniz.");
-            return;
-        }
+    if (!territory.getOwner().equals(username)) {
+        addLogMessage("Sadece kendi bölgelerinize birlik yerleştirebilirsiniz.");
+        return;
+    }
 
-        int armies = (Integer) armyCountComboBox.getSelectedItem();
-        Player player = gameState.getPlayers().get(username);
+    int armies = (Integer) armyCountComboBox.getSelectedItem();
+    Player player = gameState.getPlayers().get(username);
 
-        if (player.getReinforcementArmies() < armies) {
-            addLogMessage("Yeterli takviye birliğiniz yok. Kalan: " + player.getReinforcementArmies());
-            return;
-        }
+    if (player.getReinforcementArmies() < armies) {
+        addLogMessage("Yeterli takviye birliğiniz yok. Kalan: " + player.getReinforcementArmies());
+        return;
+    }
 
-      try {
+    try {
         GameAction action = new GameAction(ActionType.PLACE_ARMY, territoryName, null, armies);
         Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
         actionMessage.setGameAction(action);
         output.writeObject(actionMessage);
         output.flush();
         
-        addLogMessage("DEBUG: Birlik yerleştirme komutu gönderildi. Bölge: " + territoryName + ", Birlik: " + armies);
+        // Debug mesajını kaldır - kullanıcı arayüzünde gözükmemesi için
+        // addLogMessage("DEBUG: Birlik yerleştirme komutu gönderildi. Bölge: " + territoryName + ", Birlik: " + armies);
         
         currentAction = null;
         selectedTerritory = null;
     } catch (IOException e) {
         addLogMessage("Hareket gönderilemedi: " + e.getMessage());
     }
-    }
+}
 
     /**
      * Saldırı işlemini gerçekleştirir.
@@ -1083,38 +1089,49 @@ private void initializeMenuScreen() {
     }
 
     /**
-     * Oyun durumunu günceller.
-     */
-  public void updateGameState(GameState newState) {
-    gameState = newState;
+ * Oyun durumunu günceller.
+ */
+public void updateGameState(GameState newState) {
+    System.out.println("\n=== YENİ OYUN DURUMU ALINDI ===");
     
-    // Debug: Seçilen bölgenin birlik sayısını kontrol et
-    if (selectedTerritory != null && gameState.getTerritories().containsKey(selectedTerritory)) {
-        Territory territory = gameState.getTerritories().get(selectedTerritory);
-        addLogMessage("DEBUG: Seçilen bölge '" + selectedTerritory + "' birlik sayısı: " + territory.getArmies());
+    if (newState == null) {
+        System.out.println("HATA: Alınan oyun durumu NULL!");
+        return;
     }
     
+    // Değişiklik öncesi ve sonrası durumu karşılaştır
+    if (gameState != null) {
+        System.out.println("Önceki oyun durumu ile karşılaştırma:");
+        for (Map.Entry<String, Territory> entry : newState.getTerritories().entrySet()) {
+            String territoryName = entry.getKey();
+            Territory newTerritory = entry.getValue();
+            Territory oldTerritory = gameState.getTerritories().get(territoryName);
+            
+            if (oldTerritory != null && oldTerritory.getArmies() != newTerritory.getArmies()) {
+                System.out.println("DEĞİŞİKLİK: " + territoryName + 
+                                  " | Eski birlik: " + oldTerritory.getArmies() + 
+                                  " | Yeni birlik: " + newTerritory.getArmies());
+            }
+        }
+    }
+    
+    // Referansı değiştir ve ekranı güncelle
+    this.gameState = null; // Referansı temizle
+    this.gameState = newState; // Yeni durumu ata
+    
+    // Haritayı güncelle - zorla yenileme
+    mapPanel.setGameState(null);
     mapPanel.setGameState(gameState);
-    mapPanel.repaint();
+    mapPanel.repaint(); // Ekstra repaint
     
     // Kontrol panelini güncelle
     if (gameState.isGameStarted()) {
         setGameControlsEnabled(gameState.getCurrentPlayer().equals(username));
-        
-        // Oyuncu bilgilerini güncelle
         updatePlayerInfo();
-        
-        // Debug: Kendi bölgelerinizin birlik sayısını kontrol et
-        if (gameState.getPlayers().containsKey(username)) {
-            Player player = gameState.getPlayers().get(username);
-            for (String territoryName : player.getTerritories()) {
-                Territory territory = gameState.getTerritories().get(territoryName);
-                addLogMessage("DEBUG: Bölge '" + territoryName + "' birlik sayısı: " + territory.getArmies());
-            }
-        }
     }
+    
+    System.out.println("=== OYUN DURUMU GÜNCELLENDİ ===\n");
 }
-
     /**
      * Oyuncu bilgilerini günceller.
      */
@@ -1183,4 +1200,10 @@ private void initializeMenuScreen() {
     public ObjectInputStream getInput() {
         return input;
     }
+    /**
+ * Output stream'ini döndürür. ClientListener'ın mesaj göndermesi için kullanılır.
+ */
+public ObjectOutputStream getOutput() {
+    return output;
+}
 }
