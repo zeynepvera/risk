@@ -1,4 +1,4 @@
-package com.riskgame.common;
+package common;
 
 import java.io.Serializable;
 

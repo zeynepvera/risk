@@ -1,6 +1,8 @@
-package com.riskgame.server;
+package server;
 
-import com.riskgame.common.*;
+import common.GameAction;
+import common.MessageType;
+import common.Message;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;

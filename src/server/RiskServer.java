@@ -1,6 +1,12 @@
-package com.riskgame.server;
+package server;
 
-import com.riskgame.common.*;
+import common.AttackResult;
+import common.GameAction;
+import common.Continent;
+import common.MessageType;
+import common.Territory;
+import common.Player;
+import common.Message;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -30,6 +36,9 @@ public class RiskServer {
      * Ana metod, sunucuyu başlatır.
      */
     public static void main(String[] args) {
+        
+          // Karakter kodlamasını ayarla
+        System.setProperty("file.encoding", "UTF-8");
         RiskServer server = new RiskServer();
         server.startServer();
     }
@@ -65,53 +74,53 @@ public class RiskServer {
     /**
      * Sunucuyu başlatır ve istemci bağlantılarını kabul eder.
      */
-   public void startServer() {
-    try {
-        serverSocket = new ServerSocket(PORT);
-        running = true;
-        gameState = new ServerGameState();
-        System.out.println("Risk Oyunu Sunucusu başlatıldı. Port: " + PORT);
-        
-        if (!"localhost".equals(serverIPForAWS)) {
-            System.out.println("AWS Public IP: " + serverIPForAWS);
-            System.out.println("Bağlantı adresi: " + serverIPForAWS + ":" + PORT);
-        }
-        
-        System.out.println("Oyuncular bekleniyor...");
-        
-        while (running) {
-            try {
-                Socket clientSocket = serverSocket.accept();
-                clientSocket.setSoTimeout(300000); // 5 dakika
-                System.out.println("Yeni bağlantı: " + clientSocket.getInetAddress());
-                
-                if (clients.size() < maxPlayers) {
-                    ClientHandler clientHandler = new ClientHandler(clientSocket, this);
-                    Thread clientThread = new Thread(clientHandler);
-                    clientThread.start();
-                } else {
-                    // Maksimum oyuncu sayısına ulaşıldı
-                    System.out.println("Maksimum oyuncu sayısına ulaşıldı. Bağlantı reddedildi.");
-                    try {
-                        Message fullMessage = new Message("SERVER", "Sunucu dolu. Maksimum oyuncu sayısına ulaşıldı.", MessageType.SERVER_FULL);
-                        new ObjectOutputStream(clientSocket.getOutputStream()).writeObject(fullMessage);
-                        clientSocket.close();
-                    } catch (IOException e) {
-                        System.err.println("Bağlantı reddedilirken hata: " + e);
+    public void startServer() {
+        try {
+            serverSocket = new ServerSocket(PORT);
+            running = true;
+            gameState = new ServerGameState();
+            System.out.println("Risk Oyunu Sunucusu başlatıldı. Port: " + PORT);
+
+            if (!"localhost".equals(serverIPForAWS)) {
+                System.out.println("AWS Public IP: " + serverIPForAWS);
+                System.out.println("Bağlantı adresi: " + serverIPForAWS + ":" + PORT);
+            }
+
+            System.out.println("Oyuncular bekleniyor...");
+
+            while (running) {
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    clientSocket.setSoTimeout(300000); // 5 dakika
+                    System.out.println("Yeni bağlantı: " + clientSocket.getInetAddress());
+
+                    if (clients.size() < maxPlayers) {
+                        ClientHandler clientHandler = new ClientHandler(clientSocket, this);
+                        Thread clientThread = new Thread(clientHandler);
+                        clientThread.start();
+                    } else {
+                        // Maksimum oyuncu sayısına ulaşıldı
+                        System.out.println("Maksimum oyuncu sayısına ulaşıldı. Bağlantı reddedildi.");
+                        try {
+                            Message fullMessage = new Message("SERVER", "Sunucu dolu. Maksimum oyuncu sayısına ulaşıldı.", MessageType.SERVER_FULL);
+                            new ObjectOutputStream(clientSocket.getOutputStream()).writeObject(fullMessage);
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            System.err.println("Bağlantı reddedilirken hata: " + e);
+                        }
+                    }
+                } catch (IOException e) {
+                    if (running) {
+                        System.err.println("Bağlantı kabul edilirken hata: " + e);
                     }
                 }
-            } catch (IOException e) {
-                if (running) {
-                    System.err.println("Bağlantı kabul edilirken hata: " + e);
-                }
             }
+        } catch (IOException e) {
+            System.err.println("Sunucu başlatılırken hata: " + e);
+        } finally {
+            stopServer();
         }
-    } catch (IOException e) {
-        System.err.println("Sunucu başlatılırken hata: " + e);
-    } finally {
-        stopServer();
     }
-}
 
     /**
      * Sunucuyu durdurur ve tüm bağlantıları kapatır.
@@ -198,7 +207,7 @@ public class RiskServer {
     public synchronized void unregisterClient(String username) {
         ClientHandler client = clients.remove(username);
         playerReadyState.remove(username); // Hazırlık durumundan da çıkar
-        
+
         if (client != null) {
             System.out.println(username + " oyundan ayrıldı. Kalan oyuncu: " + clients.size());
             broadcastMessage(new Message("SERVER", username + " oyundan ayrıldı.", MessageType.PLAYER_LEFT));
@@ -220,17 +229,17 @@ public class RiskServer {
     }
 
     /**
-     * Oyuncunun hazır olduğunu işaretler ve gerekirse oyunu başlatır.
-     * YENİ METOD
+     * Oyuncunun hazır olduğunu işaretler ve gerekirse oyunu başlatır. YENİ
+     * METOD
      */
     public synchronized void playerReady(String playerName) {
         System.out.println(playerName + " oyuncu hazır.");
         playerReadyState.put(playerName, true);
-        
+
         // Tüm oyuncular hazır mı kontrol et
         boolean allReady = true;
         int readyCount = 0;
-        
+
         for (String player : clients.keySet()) {
             Boolean ready = playerReadyState.getOrDefault(player, false);
             if (ready) {
@@ -239,21 +248,23 @@ public class RiskServer {
                 allReady = false;
             }
         }
-        
+
         // Hazır oyuncuların durumunu bildir
         StringBuilder readyPlayers = new StringBuilder("Hazır olan oyuncular: ");
         boolean first = true;
         for (Map.Entry<String, Boolean> entry : playerReadyState.entrySet()) {
             if (entry.getValue()) {
-                if (!first) readyPlayers.append(", ");
+                if (!first) {
+                    readyPlayers.append(", ");
+                }
                 readyPlayers.append(entry.getKey());
                 first = false;
             }
         }
         readyPlayers.append(" (").append(readyCount).append("/").append(clients.size()).append(")");
-        
+
         broadcastMessage(new Message("SERVER", readyPlayers.toString(), MessageType.PLAYER_READY));
-        
+
         // Tüm oyuncular hazırsa oyunu başlat
         if (allReady && clients.size() >= 2) {
             startGame();
@@ -268,12 +279,12 @@ public class RiskServer {
             System.out.println("Oyun başlatılıyor...");
             gameState.initializeGame(new ArrayList<>(clients.keySet()));
             broadcastMessage(new Message("SERVER", "Oyun başlıyor!", MessageType.GAME_STARTED));
-            
+
             // Hazırlık durumlarını sıfırla
             for (String player : clients.keySet()) {
                 playerReadyState.put(player, false);
             }
-            
+
             broadcastGameState();
 
             // İlk oyuncunun sırasını belirt
@@ -294,7 +305,7 @@ public class RiskServer {
         broadcastMessage(new Message("SERVER", message, MessageType.GAME_ENDED));
         gameState = new ServerGameState();
         currentPlayerIndex = 0;
-        
+
         // Yeni oyun için hazırlık durumlarını sıfırla
         for (String player : clients.keySet()) {
             playerReadyState.put(player, false);
@@ -335,84 +346,87 @@ public class RiskServer {
     /**
      * Oyun durumunu tüm istemcilere gönderir.
      */
-  public void broadcastGameState() {
-    try {
-        System.out.println("\n=== OYUN DURUMU YAYINLANIYOR ===");
-        com.riskgame.common.GameState clientGameState = convertGameState();
-        
-        // Log: Bazı bölgelerin durumlarını yazdır
-        System.out.println("Güncellenmiş bölge örnekleri:");
-        int count = 0;
-        for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
-            System.out.println(entry.getKey() + ": " + entry.getValue().getArmies() + " birlik");
-            count++;
-            if (count >= 5) break; // Sadece birkaç örnek göster
-        }
-        
-        Message stateMessage = new Message("SERVER", "", MessageType.GAME_STATE);
-        stateMessage.setGameState(clientGameState);
-        broadcastMessage(stateMessage);
-        System.out.println("Oyun durumu tüm istemcilere gönderildi.");
-        System.out.println("=== OYUN DURUMU YAYINLAMA TAMAMLANDI ===\n");
-    } catch (Exception e) {
-        System.err.println("Oyun durumu gönderilirken hata: " + e.getMessage());
-        e.printStackTrace();
-    }
-}
+    public void broadcastGameState() {
+        try {
+            System.out.println("\n=== OYUN DURUMU YAYINLANIYOR ===");
+            common.GameState clientGameState = convertGameState();
 
-  /**
- * ServerGameState'i client tarafına gönderilecek GameState'e dönüştürür
- */
-private com.riskgame.common.GameState convertGameState() {
-    com.riskgame.common.GameState clientState = new com.riskgame.common.GameState();
-    
-    // Territories kopyala - derin kopya olarak
-    for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
-        Territory original = entry.getValue();
-        Territory territoryCopy = new Territory(original); // Derin kopya constructor'ı kullan
-        clientState.getTerritories().put(entry.getKey(), territoryCopy);
-    }
-    
-    // Continents kopyala
-    for (Map.Entry<String, Continent> entry : gameState.getContinents().entrySet()) {
-        Continent original = entry.getValue();
-        Continent continentCopy = new Continent(original.getName(), original.getBonus());
-        clientState.getContinents().put(entry.getKey(), continentCopy);
-    }
-    
-    // Players kopyala
-    for (Map.Entry<String, Player> entry : gameState.getPlayers().entrySet()) {
-        Player original = entry.getValue();
-        Player playerCopy = new Player(original.getName());
-        playerCopy.setReinforcementArmies(original.getReinforcementArmies());
-        for (String territory : original.getTerritories()) {
-            playerCopy.addTerritory(territory);
+            // Log: Bazı bölgelerin durumlarını yazdır
+            System.out.println("Güncellenmiş bölge örnekleri:");
+            int count = 0;
+            for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+                System.out.println(entry.getKey() + ": " + entry.getValue().getArmies() + " birlik");
+                count++;
+                if (count >= 5) {
+                    break; // Sadece birkaç örnek göster
+                }
+            }
+
+            Message stateMessage = new Message("SERVER", "", MessageType.GAME_STATE);
+            stateMessage.setGameState(clientGameState);
+            broadcastMessage(stateMessage);
+            System.out.println("Oyun durumu tüm istemcilere gönderildi.");
+            System.out.println("=== OYUN DURUMU YAYINLAMA TAMAMLANDI ===\n");
+        } catch (Exception e) {
+            System.err.println("Oyun durumu gönderilirken hata: " + e.getMessage());
+            e.printStackTrace();
         }
-        clientState.getPlayers().put(entry.getKey(), playerCopy);
     }
-    
-    // PlayerList kopyala
-    clientState.getPlayerList().addAll(gameState.getPlayerList());
-    
-    // Diğer alanlar
-    clientState.setGameStarted(gameState.isGameStarted());
-    clientState.setCurrentPlayer(gameState.getCurrentPlayer());
-    
-    System.out.println("\n=== GAME STATE DÖNÜŞTÜRME ===");
-    System.out.println("Dönüştürülen oyun durumu:");
-    
-    // Daha ayrıntılı log: tüm bölgelerin birlik sayılarını ve sahiplerini yazdır
-    System.out.println("Bölge durumları:");
-    for (Map.Entry<String, Territory> entry : clientState.getTerritories().entrySet()) {
-        System.out.println("Bölge: " + entry.getKey() + 
-                          " | Sahibi: " + entry.getValue().getOwner() + 
-                          " | Birlik: " + entry.getValue().getArmies());
+
+    /**
+     * ServerGameState'i client tarafına gönderilecek GameState'e dönüştürür
+     */
+    private common.GameState convertGameState() {
+        common.GameState clientState = new common.GameState();
+
+        // Territories kopyala - derin kopya olarak
+        for (Map.Entry<String, Territory> entry : gameState.getTerritories().entrySet()) {
+            Territory original = entry.getValue();
+            Territory territoryCopy = new Territory(original); // Derin kopya constructor'ı kullan
+            clientState.getTerritories().put(entry.getKey(), territoryCopy);
+        }
+
+        // Continents kopyala
+        for (Map.Entry<String, Continent> entry : gameState.getContinents().entrySet()) {
+            Continent original = entry.getValue();
+            Continent continentCopy = new Continent(original.getName(), original.getBonus());
+            clientState.getContinents().put(entry.getKey(), continentCopy);
+        }
+
+        // Players kopyala
+        for (Map.Entry<String, Player> entry : gameState.getPlayers().entrySet()) {
+            Player original = entry.getValue();
+            Player playerCopy = new Player(original.getName());
+            playerCopy.setReinforcementArmies(original.getReinforcementArmies());
+            for (String territory : original.getTerritories()) {
+                playerCopy.addTerritory(territory);
+            }
+            clientState.getPlayers().put(entry.getKey(), playerCopy);
+        }
+
+        // PlayerList kopyala
+        clientState.getPlayerList().addAll(gameState.getPlayerList());
+
+        // Diğer alanlar
+        clientState.setGameStarted(gameState.isGameStarted());
+        clientState.setCurrentPlayer(gameState.getCurrentPlayer());
+
+        System.out.println("\n=== GAME STATE DÖNÜŞTÜRME ===");
+        System.out.println("Dönüştürülen oyun durumu:");
+
+        // Daha ayrıntılı log: tüm bölgelerin birlik sayılarını ve sahiplerini yazdır
+        System.out.println("Bölge durumları:");
+        for (Map.Entry<String, Territory> entry : clientState.getTerritories().entrySet()) {
+            System.out.println("Bölge: " + entry.getKey()
+                    + " | Sahibi: " + entry.getValue().getOwner()
+                    + " | Birlik: " + entry.getValue().getArmies());
+        }
+
+        System.out.println("=== GAME STATE DÖNÜŞTÜRME TAMAMLANDI ===\n");
+
+        return clientState;
     }
-    
-    System.out.println("=== GAME STATE DÖNÜŞTÜRME TAMAMLANDI ===\n");
-    
-    return clientState;
-}
+
     /**
      * Oyunun başlayıp başlamadığını kontrol eder.
      */
@@ -470,9 +484,55 @@ private com.riskgame.common.GameState convertGameState() {
                 gameState.placeArmy(player, action.getSourceTerritory(), action.getArmyCount());
                 broadcastMessage(new Message("SERVER", player + ", " + action.getSourceTerritory() + " bölgesine " + action.getArmyCount() + " birlik yerleştirdi.", MessageType.MOVE_APPLIED));
                 break;
+
             case ATTACK:
-                AttackResult result = gameState.attack(player, action.getSourceTerritory(), action.getTargetTerritory(), action.getArmyCount());
-                broadcastMessage(new Message("SERVER", player + ", " + action.getSourceTerritory() + " bölgesinden " + action.getTargetTerritory() + " bölgesine saldırdı. Sonuç: " + result.getDescription(), MessageType.MOVE_APPLIED));
+                // İstemciden gelen zarları al (varsa)
+                int[] attackDice = action.getAttackDice();
+                int[] defenseDice = action.getDefenseDice();
+
+                // Güncellenmiş attack metodunu çağır
+                AttackResult result = gameState.attack(
+                        player,
+                        action.getSourceTerritory(),
+                        action.getTargetTerritory(),
+                        action.getArmyCount(),
+                        attackDice, // İstemciden gelen saldıran zarları
+                        defenseDice // İstemciden gelen savunan zarları
+                );
+
+                // Zar sonuçlarını içeren detaylı bir mesaj oluştur
+                StringBuilder resultMessage = new StringBuilder();
+                resultMessage.append(player)
+                        .append(", ")
+                        .append(action.getSourceTerritory())
+                        .append(" bölgesinden ")
+                        .append(action.getTargetTerritory())
+                        .append(" bölgesine saldırdı. ");
+
+                // Zar detaylarını ekle (opsiyonel)
+                if (result.getAttackDice() != null && result.getDefenseDice() != null) {
+                    resultMessage.append("Zarlar: [Saldıran: ");
+                    for (int i = 0; i < result.getAttackDice().length; i++) {
+                        resultMessage.append(result.getAttackDice()[i]);
+                        if (i < result.getAttackDice().length - 1) {
+                            resultMessage.append(",");
+                        }
+                    }
+                    resultMessage.append(" vs Savunan: ");
+                    for (int i = 0; i < result.getDefenseDice().length; i++) {
+                        resultMessage.append(result.getDefenseDice()[i]);
+                        if (i < result.getDefenseDice().length - 1) {
+                            resultMessage.append(",");
+                        }
+                    }
+                    resultMessage.append("]. ");
+                }
+
+                // Sonucu ekle
+                resultMessage.append("Sonuç: ")
+                        .append(result.getDescription());
+
+                broadcastMessage(new Message("SERVER", resultMessage.toString(), MessageType.MOVE_APPLIED));
 
                 // Eğer bir oyuncu tüm bölgeleri kaybettiyse
                 String eliminatedPlayer = result.getEliminatedPlayer();

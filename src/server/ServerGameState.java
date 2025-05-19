@@ -1,9 +1,9 @@
-package com.riskgame.server;
+package server;
 
-import com.riskgame.common.AttackResult;
-import com.riskgame.common.Continent;
-import com.riskgame.common.Player;
-import com.riskgame.common.Territory;
+import common.AttackResult;
+import common.Continent;
+import common.Player;
+import common.Territory;
 import java.io.Serializable;
 import java.util.*;
 
@@ -366,73 +366,147 @@ public void placeArmy(String playerName, String territoryName, int armies) {
     /**
      * Saldırı yapar ve sonucu döndürür.
      */
-    public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies) {
-        if (!canAttack(playerName, sourceTerritory, targetTerritory, attackingArmies)) {
-            return new AttackResult(false, "Geçersiz saldırı!", null);
-        }
 
-        Territory source = territories.get(sourceTerritory);
-        Territory target = territories.get(targetTerritory);
-        String defenderName = target.getOwner();
-
-        // Zarları at
-        int[] attackDice = rollDice(attackingArmies);
-        int defenseArmies = Math.min(2, target.getArmies());
-        int[] defenseDice = rollDice(defenseArmies);
-
-        // Zarları sırala
-        Arrays.sort(attackDice);
-        reverseArray(attackDice);
-        Arrays.sort(defenseDice);
-        reverseArray(defenseDice);
-
-        // Karşılaştır ve kayıpları hesapla
-        int attackerLosses = 0;
-        int defenderLosses = 0;
-
-        for (int i = 0; i < Math.min(attackDice.length, defenseDice.length); i++) {
-            if (attackDice[i] > defenseDice[i]) {
-                defenderLosses++;
-            } else {
-                attackerLosses++;
-            }
-        }
-
-        // Kayıpları uygula
-        source.removeArmies(attackerLosses);
-        target.removeArmies(defenderLosses);
-
-        // Saldırgan kazandı mı kontrol et
-        boolean conquered = false;
-        String description = "Saldırı sonucu: Saldıran " + attackerLosses + " birlik kaybetti, Savunan " + defenderLosses + " birlik kaybetti.";
-        String eliminatedPlayer = null;
-
-        if (target.getArmies() == 0) {
-            // Bölge ele geçirildi
-            Player defender = players.get(defenderName);
-            Player attacker = players.get(playerName);
-
-            defender.removeTerritory(targetTerritory);
-            attacker.addTerritory(targetTerritory);
-
-            target.setOwner(playerName);
-            target.setArmies(attackingArmies);
-            source.removeArmies(attackingArmies);
-
-            conquered = true;
-            description += " " + playerName + " bölgeyi ele geçirdi!";
-
-            // Savunan oyuncu elendi mi kontrol et
-            if (defender.getTerritories().isEmpty()) {
-                eliminatedPlayer = defenderName;
-                description += " " + defenderName + " oyundan elendi!";
-            }
-        }
-
-        return new AttackResult(conquered, description, eliminatedPlayer);
+/**
+ * Saldırı yapar ve sonucu döndürür. İstemciden gelen zarları kullanabilir.
+ */
+public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies, int[] clientAttackDice, int[] clientDefenseDice) {
+    if (!canAttack(playerName, sourceTerritory, targetTerritory, attackingArmies)) {
+        return new AttackResult(false, "Geçersiz saldırı!", null);
     }
 
-    /**
+    Territory source = territories.get(sourceTerritory);
+    Territory target = territories.get(targetTerritory);
+    String defenderName = target.getOwner();
+
+    System.out.println("\n=== SALDIRI BAŞLATILIYOR ===");
+    System.out.println("Saldıran: " + playerName + " (" + sourceTerritory + ", " + source.getArmies() + " birlik)");
+    System.out.println("Savunan: " + defenderName + " (" + targetTerritory + ", " + target.getArmies() + " birlik)");
+    System.out.println("Saldıran birlik sayısı: " + attackingArmies);
+
+    // İstemciden gelen zarları kullan veya sunucuda yeni zarlar at
+    int[] attackDice;
+    int[] defenseDice;
+    
+    if (clientAttackDice != null && clientAttackDice.length == attackingArmies) {
+        // İstemciden gelen zarları kullan
+        attackDice = clientAttackDice;
+        System.out.println("İstemciden gelen saldıran zarları kullanılıyor: " + Arrays.toString(attackDice));
+    } else {
+        // Sunucuda yeni zarlar at
+        attackDice = rollDice(attackingArmies);
+        System.out.println("Sunucuda atılan saldıran zarları: " + Arrays.toString(attackDice));
+    }
+    
+    int defenseArmies = Math.min(2, target.getArmies());
+    
+    if (clientDefenseDice != null && clientDefenseDice.length == defenseArmies) {
+        // İstemciden gelen zarları kullan
+        defenseDice = clientDefenseDice;
+        System.out.println("İstemciden gelen savunan zarları kullanılıyor: " + Arrays.toString(defenseDice));
+    } else {
+        // Sunucuda yeni zarlar at
+        defenseDice = rollDice(defenseArmies);
+        System.out.println("Sunucuda atılan savunan zarları: " + Arrays.toString(defenseDice));
+    }
+    
+    // Zarları sırala
+    Arrays.sort(attackDice);
+    reverseArray(attackDice);
+    Arrays.sort(defenseDice);
+    reverseArray(defenseDice);
+    
+    System.out.println("Sıralanmış saldıran zarları: " + Arrays.toString(attackDice));
+    System.out.println("Sıralanmış savunan zarları: " + Arrays.toString(defenseDice));
+
+    // Karşılaştır ve kayıpları hesapla
+    int attackerLosses = 0;
+    int defenderLosses = 0;
+
+    for (int i = 0; i < Math.min(attackDice.length, defenseDice.length); i++) {
+        System.out.println("Karşılaştırma " + (i+1) + ": Saldıran zar: " + attackDice[i] + " vs Savunan zar: " + defenseDice[i]);
+        if (attackDice[i] > defenseDice[i]) {
+            defenderLosses++;
+            System.out.println(" -> Savunan kaybetti (Savunan: -1 birlik)");
+        } else {
+            attackerLosses++;
+            System.out.println(" -> Saldıran kaybetti (Saldıran: -1 birlik)");
+        }
+    }
+
+    System.out.println("Toplam kayıplar - Saldıran: " + attackerLosses + ", Savunan: " + defenderLosses);
+    
+    // Kayıpları uygula
+    System.out.println("Başlangıç birlik sayıları - Saldıran: " + source.getArmies() + ", Savunan: " + target.getArmies());
+    source.removeArmies(attackerLosses);
+    target.removeArmies(defenderLosses);
+    System.out.println("Kayıplardan sonra - Saldıran: " + source.getArmies() + ", Savunan: " + target.getArmies());
+
+    // Saldırgan kazandı mı kontrol et
+    boolean conquered = false;
+    StringBuilder descBuilder = new StringBuilder();
+    descBuilder.append("Saldırı sonucu: ");
+    
+    // Zar detaylarını ekle
+    descBuilder.append("Zarlar [Saldıran: ");
+    for (int i = 0; i < attackDice.length; i++) {
+        descBuilder.append(attackDice[i]);
+        if (i < attackDice.length - 1) descBuilder.append(",");
+    }
+    descBuilder.append(" vs Savunan: ");
+    for (int i = 0; i < defenseDice.length; i++) {
+        descBuilder.append(defenseDice[i]);
+        if (i < defenseDice.length - 1) descBuilder.append(",");
+    }
+    descBuilder.append("]. ");
+    
+    // Kayıpları ekle
+    descBuilder.append("Saldıran ").append(attackerLosses).append(" birlik kaybetti, Savunan ").append(defenderLosses).append(" birlik kaybetti.");
+    
+    String eliminatedPlayer = null;
+
+    if (target.getArmies() == 0) {
+        // Bölge ele geçirildi
+        Player defender = players.get(defenderName);
+        Player attacker = players.get(playerName);
+
+        defender.removeTerritory(targetTerritory);
+        attacker.addTerritory(targetTerritory);
+
+        target.setOwner(playerName);
+        target.setArmies(attackingArmies);
+        source.removeArmies(attackingArmies);
+
+        conquered = true;
+        descBuilder.append(" ").append(playerName).append(" bölgeyi ele geçirdi!");
+        System.out.println("BÖLGE ELE GEÇİRİLDİ! " + targetTerritory + " artık " + playerName + " oyuncusunun!");
+
+        // Savunan oyuncu elendi mi kontrol et
+        if (defender.getTerritories().isEmpty()) {
+            eliminatedPlayer = defenderName;
+            descBuilder.append(" ").append(defenderName).append(" oyundan elendi!");
+            System.out.println(defenderName + " OYUNDAN ELENDİ!");
+        }
+    }
+
+    System.out.println("=== SALDIRI TAMAMLANDI ===\n");
+    
+    // Zar sonuçlarını içeren zenginleştirilmiş AttackResult
+    AttackResult result = new AttackResult(conquered, descBuilder.toString(), eliminatedPlayer);
+    result.setAttackDice(attackDice);
+    result.setDefenseDice(defenseDice);
+    result.setAttackerLosses(attackerLosses);
+    result.setDefenderLosses(defenderLosses);
+    
+    return result;
+}
+
+/**
+ * Eski metodla geriye dönük uyumluluk için wrapper.
+ */
+public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies) {
+    return attack(playerName, sourceTerritory, targetTerritory, attackingArmies, null, null);
+}    /**
      * Zar atar.
      */
     private int[] rollDice(int count) {

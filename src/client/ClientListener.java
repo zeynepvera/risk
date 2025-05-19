@@ -1,6 +1,7 @@
-package com.riskgame.client;
+package client;
 
-import com.riskgame.common.*;
+import common.MessageType;
+import common.Message;
 import java.io.IOException;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
