@@ -315,34 +315,34 @@ public class RiskServer {
     /**
      * Sıradaki oyuncuya geçiş yapar.
      */
-    public synchronized void nextTurn() {
-        if (hasGameStarted()) {
-            List<String> playerList = gameState.getPlayerList();
-            if (!playerList.isEmpty()) {
-                // Geçerli indeksi kontrol et
-                if (currentPlayerIndex >= playerList.size()) {
-                    currentPlayerIndex = 0;
-                }
-
-                // Bir sonraki oyuncuya geç
-                String currentPlayer = playerList.get(currentPlayerIndex);
-                gameState.setCurrentPlayer(currentPlayer);
-
-                broadcastMessage(new Message("SERVER", "Sıra " + currentPlayer + " oyuncusunda.", MessageType.TURN_CHANGED));
-
-                // Yeni birlikleri hesapla ve ekle
-                int newArmies = gameState.calculateReinforcementArmies(currentPlayer);
-                gameState.setReinforcementArmies(currentPlayer, newArmies);
-
-                // Güncel oyun durumunu gönder
-                broadcastGameState();
-
-                // Bir sonraki oyuncu için indeksi hazırla
-                currentPlayerIndex = (currentPlayerIndex + 1) % playerList.size();
+public synchronized void nextTurn() {
+    if (hasGameStarted()) {
+        List<String> playerList = gameState.getPlayerList();
+        if (!playerList.isEmpty()) {
+            // Geçerli indeksi kontrol et
+            if (currentPlayerIndex >= playerList.size()) {
+                currentPlayerIndex = 0;
             }
+
+            // Bir sonraki oyuncuya geç
+            String currentPlayer = playerList.get(currentPlayerIndex);
+            gameState.setCurrentPlayer(currentPlayer);
+
+            // Bu mesajı sadece bir kez gönder
+            broadcastMessage(new Message("SERVER", "Sıra " + currentPlayer + " oyuncusunda.", MessageType.TURN_CHANGED));
+
+            // Yeni birlikleri hesapla ve ekle
+            int newArmies = gameState.calculateReinforcementArmies(currentPlayer);
+            gameState.setReinforcementArmies(currentPlayer, newArmies);
+
+            // Güncel oyun durumunu gönder
+            broadcastGameState();
+
+            // Bir sonraki oyuncu için indeksi hazırla
+            currentPlayerIndex = (currentPlayerIndex + 1) % playerList.size();
         }
     }
-
+}
     /**
      * Oyun durumunu tüm istemcilere gönderir.
      */

@@ -1,5 +1,6 @@
-package client;
+package common;
 
+import client.RiskClient;
 import common.GameState;
 import common.Player;
 import common.Territory;
@@ -42,6 +43,7 @@ public class MapPanel extends JPanel {
     private Font territoryFont;
     private Font countFont;
     private String mapStyle = "CLASSIC"; // CLASSIC, MODERN, SATELLITE
+
 
     // Ölçekleme faktörü ekleyin
     private float scaleFactor = 1.0f;
