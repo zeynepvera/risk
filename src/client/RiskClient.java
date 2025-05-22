@@ -36,7 +36,7 @@ public class RiskClient extends JFrame {
     private static final long serialVersionUID = 1L;
 
     // Ağ bağlantısı
-    private static final int PORT = 9876;
+    private static final int PORT = 9034;
     private String serverIP;
     private Socket socket;
     private ObjectOutputStream output;
@@ -72,6 +72,8 @@ public class RiskClient extends JFrame {
     private JTextField usernameField;
     private JTextField portField;
     private JLabel winnerLabel; // Kazanan gösterimi için eklendi
+    private String lastSystemMessage = null;
+
 
     /**
      * Ana metod, istemciyi başlatır.
@@ -326,6 +328,13 @@ public class RiskClient extends JFrame {
         exitButton.setFont(new Font("Arial", Font.BOLD, 16));
         exitButton.addActionListener(e -> System.exit(0));
 
+      JButton howToPlayButton = createStylishButton("NASIL OYNANIR?", 200, 50, new Color(50, 80, 130), new Color(70, 100, 160));
+howToPlayButton.setFont(new Font("Arial", Font.BOLD, 16));
+howToPlayButton.addActionListener(e -> showHowToPlayDialog());
+
+buttonPanel.add(howToPlayButton); // Bunu önce ekle, sonra playButton ve exitButton ekle
+
+        
         buttonPanel.add(playButton);
         buttonPanel.add(exitButton);
 
@@ -864,6 +873,66 @@ private void initializeGameScreen() {
         }
     }
 
+private void showHowToPlayDialog() {
+    JDialog dialog = new JDialog(this, "Nasıl Oynanır?", true);
+    dialog.setSize(500, 400);
+    dialog.setLocationRelativeTo(this);
+    dialog.setResizable(false);
+
+    JPanel content = new JPanel();
+    content.setLayout(new BorderLayout(10, 10));
+    content.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    content.setBackground(new Color(250, 250, 255));
+
+    JLabel title = new JLabel("🧠 RISK OYUNU KURALLARI");
+    title.setFont(new Font("Segoe UI", Font.BOLD, 20));
+    title.setForeground(new Color(50, 60, 120));
+    content.add(title, BorderLayout.NORTH);
+
+    JTextArea textArea = new JTextArea("""
+        • Her oyuncu sırayla hamle yapar.
+        • Turda 4 seçenek vardır:
+            - Birlik Yerleştir
+            - Saldır
+            - Takviye Gönder
+            - Turu Bitir
+        
+        • Saldırıda zarlar atılır ve en yüksek değerler karşılaştırılır.
+        • Sadece komşu bölgelere saldırabilirsiniz.
+        • Tüm bölgeleri ele geçiren oyuncu oyunu kazanır.
+        
+        🎯 Amaç: Haritadaki tüm bölgeleri ele geçir!
+
+        🏆 Bol şans!
+        """);
+    textArea.setEditable(false);
+    textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+    textArea.setBackground(new Color(250, 250, 255));
+    textArea.setLineWrap(true);
+    textArea.setWrapStyleWord(true);
+    textArea.setMargin(new Insets(10, 10, 10, 10));
+    content.add(new JScrollPane(textArea), BorderLayout.CENTER);
+
+    JButton okButton = new JButton("Kapat");
+    okButton.setBackground(new Color(70, 130, 180));
+    okButton.setForeground(Color.WHITE);
+    okButton.setFocusPainted(false);
+    okButton.setFont(new Font("Segoe UI", Font.BOLD, 14));
+    okButton.addActionListener(e -> dialog.dispose());
+
+    JPanel buttonPanel = new JPanel();
+    buttonPanel.setBackground(new Color(250, 250, 255));
+    buttonPanel.add(okButton);
+    content.add(buttonPanel, BorderLayout.SOUTH);
+
+    dialog.setContentPane(content);
+    dialog.setVisible(true);
+    
+   
+}
+
+
+    
     /**
      * Sohbet mesajı gönderir.
      */
@@ -1232,8 +1301,7 @@ private boolean containsItem(JComboBox<Integer> comboBox, int value) {
                             territoryName,
                             selectedArmies
                     );
-                    action.setAttackDice(attackDice);
-                    action.setDefenseDice(defenseDice);
+                    
 
                     Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
                     actionMessage.setGameAction(action);
@@ -1350,9 +1418,19 @@ private boolean containsItem(JComboBox<Integer> comboBox, int value) {
      * Log mesajı ekler.
      */
     public void addLogMessage(String message) {
-        chatArea.append("[Sistem] " + message + "\n");
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+    String fullMessage = "[Sistem] " + message;
+
+    // Eğer bu mesaj bir önceki sistem mesajı ile aynıysa tekrar yazma
+    if (fullMessage.equals(lastSystemMessage)) {
+        return;
     }
+
+    lastSystemMessage = fullMessage;
+
+    chatArea.append(fullMessage + "\n");
+    chatArea.setCaretPosition(chatArea.getDocument().getLength());
+}
+
 
     /**
      * Sohbet mesajı ekler.

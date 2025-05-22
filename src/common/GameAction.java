@@ -15,9 +15,7 @@ public class GameAction implements Serializable {
     private String targetTerritory;   // Hedef bölge
     private int armyCount;            // Birlik sayısı
     
-     // Zar sonuçları - Bu alanları ekleyin
-    private int[] attackDice;
-    private int[] defenseDice;
+    
     
     public GameAction(ActionType type, String sourceTerritory, String targetTerritory, int armyCount) {
         this.type = type;
@@ -43,30 +41,13 @@ public class GameAction implements Serializable {
     }
     
     
-     // Zar sonuçları için getter ve setter metodları ekleyin
-    public int[] getAttackDice() {
-        return attackDice;
-    }
-    
-    public void setAttackDice(int[] attackDice) {
-        this.attackDice = attackDice;
-    }
-    
-    public int[] getDefenseDice() {
-        return defenseDice;
-    }
-    
-    public void setDefenseDice(int[] defenseDice) {
-        this.defenseDice = defenseDice;
-    }
+ 
     
     @Override
     public String toString() {
         return "GameAction{type=" + type + 
                ", source='" + sourceTerritory + "', target='" + targetTerritory + 
                "', armies=" + armyCount + 
-               ", attackDice=" + (attackDice != null ? Arrays.toString(attackDice) : "null") + 
-               ", defenseDice=" + (defenseDice != null ? Arrays.toString(defenseDice) : "null") + 
                "}";
     }
 

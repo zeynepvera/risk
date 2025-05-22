@@ -289,10 +289,10 @@ public class MapPanel extends JPanel {
                 new int[]{120, 70, 100, 140, 180, 90},
                 new Point(180, 120));
 
-        createTerritory("GRÖNLAND", "KUZEY_AMERIKA",
+       /* createTerritory("GRÖNLAND", "KUZEY_AMERIKA",
                 new int[]{250, 320, 380, 350, 310, 280, 260},
                 new int[]{40, 30, 70, 120, 150, 130, 90},
-                new Point(320, 80));
+                new Point(320, 80));*/
 
         createTerritory("ALBERTA", "KUZEY_AMERIKA",
                 new int[]{100, 140, 180, 190, 160, 120, 90},
@@ -304,10 +304,10 @@ public class MapPanel extends JPanel {
                 new int[]{180, 140, 170, 230, 260, 230},
                 new Point(220, 200));
 
-        createTerritory("QUEBEC", "KUZEY_AMERIKA",
+        /*createTerritory("QUEBEC", "KUZEY_AMERIKA",
                 new int[]{270, 310, 350, 330, 290, 250},
                 new int[]{230, 200, 240, 280, 290, 260},
-                new Point(310, 250));
+                new Point(310, 250));*/
 
         createTerritory("BATI_ABD", "KUZEY_AMERIKA",
                 new int[]{90, 120, 160, 180, 150, 90, 70},

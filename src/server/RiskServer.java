@@ -11,6 +11,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.ObjectOutputStream;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.URL;
@@ -22,7 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RiskServer {
 
-    private static final int PORT = 9876;
+    private static final int PORT = 9034;
     private ServerSocket serverSocket;
     private boolean running;
     private Map<String, ClientHandler> clients = new ConcurrentHashMap<>();
@@ -36,8 +37,8 @@ public class RiskServer {
      * Ana metod, sunucuyu başlatır.
      */
     public static void main(String[] args) {
-        
-          // Karakter kodlamasını ayarla
+
+        // Karakter kodlamasını ayarla
         System.setProperty("file.encoding", "UTF-8");
         RiskServer server = new RiskServer();
         server.startServer();
@@ -76,7 +77,7 @@ public class RiskServer {
      */
     public void startServer() {
         try {
-            serverSocket = new ServerSocket(PORT);
+            serverSocket = new ServerSocket(PORT, 0, InetAddress.getByName("0.0.0.0"));
             running = true;
             gameState = new ServerGameState();
             System.out.println("Risk Oyunu Sunucusu başlatıldı. Port: " + PORT);
@@ -315,34 +316,29 @@ public class RiskServer {
     /**
      * Sıradaki oyuncuya geçiş yapar.
      */
-public synchronized void nextTurn() {
-    if (hasGameStarted()) {
-        List<String> playerList = gameState.getPlayerList();
-        if (!playerList.isEmpty()) {
-            // Geçerli indeksi kontrol et
-            if (currentPlayerIndex >= playerList.size()) {
-                currentPlayerIndex = 0;
+    public synchronized void nextTurn() {
+        if (hasGameStarted()) {
+            List<String> playerList = gameState.getPlayerList();
+            if (!playerList.isEmpty()) {
+                if (currentPlayerIndex >= playerList.size()) {
+                    currentPlayerIndex = 0;
+                }
+
+                String currentPlayer = playerList.get(currentPlayerIndex);
+                gameState.setCurrentPlayer(currentPlayer);
+
+                // 🔴 İlgili tekrar eden mesaj bu satırda gönderiliyor
+                //  broadcastMessage(new Message("SERVER", "Sıra " + currentPlayer + " oyuncusunda.", MessageType.TURN_CHANGED));
+                int newArmies = gameState.calculateReinforcementArmies(currentPlayer);
+                gameState.setReinforcementArmies(currentPlayer, newArmies);
+
+                broadcastGameState();
+
+                currentPlayerIndex = (currentPlayerIndex + 1) % playerList.size();
             }
-
-            // Bir sonraki oyuncuya geç
-            String currentPlayer = playerList.get(currentPlayerIndex);
-            gameState.setCurrentPlayer(currentPlayer);
-
-            // Bu mesajı sadece bir kez gönder
-            broadcastMessage(new Message("SERVER", "Sıra " + currentPlayer + " oyuncusunda.", MessageType.TURN_CHANGED));
-
-            // Yeni birlikleri hesapla ve ekle
-            int newArmies = gameState.calculateReinforcementArmies(currentPlayer);
-            gameState.setReinforcementArmies(currentPlayer, newArmies);
-
-            // Güncel oyun durumunu gönder
-            broadcastGameState();
-
-            // Bir sonraki oyuncu için indeksi hazırla
-            currentPlayerIndex = (currentPlayerIndex + 1) % playerList.size();
         }
     }
-}
+
     /**
      * Oyun durumunu tüm istemcilere gönderir.
      */
@@ -486,18 +482,13 @@ public synchronized void nextTurn() {
                 break;
 
             case ATTACK:
-                // İstemciden gelen zarları al (varsa)
-                int[] attackDice = action.getAttackDice();
-                int[] defenseDice = action.getDefenseDice();
 
                 // Güncellenmiş attack metodunu çağır
                 AttackResult result = gameState.attack(
                         player,
                         action.getSourceTerritory(),
                         action.getTargetTerritory(),
-                        action.getArmyCount(),
-                        attackDice, // İstemciden gelen saldıran zarları
-                        defenseDice // İstemciden gelen savunan zarları
+                        action.getArmyCount()
                 );
 
                 // Zar sonuçlarını içeren detaylı bir mesaj oluştur

@@ -505,10 +505,76 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
  * Eski metodla geriye dönük uyumluluk için wrapper.
  */
 public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies) {
-    return attack(playerName, sourceTerritory, targetTerritory, attackingArmies, null, null);
-}    /**
-     * Zar atar.
-     */
+    if (!canAttack(playerName, sourceTerritory, targetTerritory, attackingArmies)) {
+        return new AttackResult(false, "Geçersiz saldırı!", null);
+    }
+
+    Territory source = territories.get(sourceTerritory);
+    Territory target = territories.get(targetTerritory);
+    String defenderName = target.getOwner();
+
+    // Zarları sunucu oluşturur
+    int[] attackDice = rollDice(attackingArmies);
+    int defenseArmies = Math.min(2, target.getArmies());
+    int[] defenseDice = rollDice(defenseArmies);
+
+    Arrays.sort(attackDice);
+    reverseArray(attackDice);
+    Arrays.sort(defenseDice);
+    reverseArray(defenseDice);
+
+    int attackerLosses = 0;
+    int defenderLosses = 0;
+
+    for (int i = 0; i < Math.min(attackDice.length, defenseDice.length); i++) {
+        if (attackDice[i] > defenseDice[i]) {
+            defenderLosses++;
+        } else {
+            attackerLosses++;
+        }
+    }
+
+    source.removeArmies(attackerLosses);
+    target.removeArmies(defenderLosses);
+
+    boolean conquered = false;
+    StringBuilder descBuilder = new StringBuilder();
+    descBuilder.append("Zarlar [Saldıran: ").append(Arrays.toString(attackDice))
+               .append(" vs Savunan: ").append(Arrays.toString(defenseDice)).append("]. ");
+    descBuilder.append("Saldıran ").append(attackerLosses)
+               .append(" birlik, savunan ").append(defenderLosses).append(" birlik kaybetti.");
+
+    String eliminatedPlayer = null;
+
+    if (target.getArmies() == 0) {
+        Player attacker = players.get(playerName);
+        Player defender = players.get(defenderName);
+
+        target.setOwner(playerName);
+        attacker.addTerritory(targetTerritory);
+        defender.removeTerritory(targetTerritory);
+
+        target.setArmies(attackingArmies);
+        source.removeArmies(attackingArmies);
+
+        conquered = true;
+        descBuilder.append(" ").append(playerName).append(" bölgeyi ele geçirdi!");
+
+        if (defender.getTerritories().isEmpty()) {
+            eliminatedPlayer = defenderName;
+            descBuilder.append(" ").append(defenderName).append(" oyundan elendi!");
+        }
+    }
+
+    AttackResult result = new AttackResult(conquered, descBuilder.toString(), eliminatedPlayer);
+    result.setAttackDice(attackDice);
+    result.setDefenseDice(defenseDice);
+    result.setAttackerLosses(attackerLosses);
+    result.setDefenderLosses(defenderLosses);
+
+    return result;
+}
+   
     private int[] rollDice(int count) {
         Random random = new Random();
         int[] dice = new int[count];
