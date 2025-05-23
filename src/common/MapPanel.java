@@ -673,7 +673,7 @@ public class MapPanel extends JPanel {
                 // Draw territory name
                 g2d.setFont(territoryFont);
                 g2d.setColor(Color.RED); // Daha belirgin olması için kırmızı renk kullanın
-                drawCenteredString(g2d, getShortName(territoryName), center.x, center.y - 15, Color.BLACK);
+drawCenteredString(g2d, getShortName(territoryName), center.x, center.y - 15, new Color(255, 255, 200)); // Krem ton
             } else {
                 System.err.println("HATA: '" + territoryName + "' bölgesi için polygon bulunamadı!");
             }

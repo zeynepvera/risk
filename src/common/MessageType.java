@@ -22,5 +22,7 @@ public enum MessageType implements Serializable {
     GAME_ACTION,        // Oyun hareketi
     MOVE_APPLIED,       // Hareket uygulandı
     PLAYER_READY,  // Oyuncu hazır
-    INVALID_MOVE        // Geçersiz hareket
+    INVALID_MOVE,        // Geçersiz hareket
+    SURRENDER, // Oyuncu teslim oldu
+
 }

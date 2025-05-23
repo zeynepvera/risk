@@ -714,4 +714,36 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
     public void setCurrentPlayer(String currentPlayer) {
         this.currentPlayer = currentPlayer;
     }
+    
+    public common.GameState toClientState() {
+    common.GameState clientState = new common.GameState();
+
+    // Bölgeleri kopyala
+    for (Map.Entry<String, Territory> entry : this.getTerritories().entrySet()) {
+        clientState.getTerritories().put(entry.getKey(), new Territory(entry.getValue()));
+    }
+
+    // Kıtaları kopyala
+    for (Map.Entry<String, Continent> entry : this.getContinents().entrySet()) {
+        clientState.getContinents().put(entry.getKey(), new Continent(entry.getValue().getName(), entry.getValue().getBonus()));
+    }
+
+    // Oyuncuları kopyala
+    for (Map.Entry<String, Player> entry : this.getPlayers().entrySet()) {
+        Player copy = new Player(entry.getValue().getName());
+        copy.setReinforcementArmies(entry.getValue().getReinforcementArmies());
+        for (String t : entry.getValue().getTerritories()) {
+            copy.addTerritory(t);
+        }
+        clientState.getPlayers().put(entry.getKey(), copy);
+    }
+
+    // Sıra ve oyuncu listesi
+    clientState.getPlayerList().addAll(this.getPlayerList());
+    clientState.setGameStarted(this.isGameStarted());
+    clientState.setCurrentPlayer(this.getCurrentPlayer());
+
+    return clientState;
+}
+
 }
