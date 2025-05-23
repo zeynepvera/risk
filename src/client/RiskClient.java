@@ -26,10 +26,7 @@ import java.util.Map;
 import client.DiceDialog;
 import common.MapPanel;
 
-/**
- * Risk oyunu için başlangıç ve bitiş ekranlarını içeren genişletilmiş istemci
- * uygulaması.
- */
+
 public class RiskClient extends JFrame {
 
     private static final long serialVersionUID = 1L;
@@ -73,9 +70,7 @@ public class RiskClient extends JFrame {
     private JLabel winnerLabel; // Kazanan gösterimi için eklendi
     private String lastSystemMessage = null;
 
-    /**
-     * Ana metod, istemciyi başlatır.
-     */
+   
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             RiskClient client = new RiskClient();
@@ -83,9 +78,6 @@ public class RiskClient extends JFrame {
         });
     }
 
-    /**
-     * Risk istemcisi constructor'ı.
-     */
     public RiskClient() {
         super("Risk Oyunu");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -114,18 +106,11 @@ public class RiskClient extends JFrame {
         });
     }
 
-    /**
-     * Başlangıç menü ekranını oluşturur.
-     */
-    /**
-     * Başlangıç menü ekranını oluşturur. Geliştirilmiş ve profesyonel kullanıcı
-     * arayüzü.
-     */
+   
     private void initializeMenuScreen() {
         menuPanel = new JPanel(new BorderLayout());
         menuPanel.setBackground(new Color(240, 240, 255));
 
-        // ---- Logo/başlık paneli ----
         JPanel titlePanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -150,13 +135,11 @@ public class RiskClient extends JFrame {
 
         menuPanel.add(titlePanel, BorderLayout.NORTH);
 
-        // ---- Ana içerik paneli ----
         JPanel centerPanel = new JPanel();
         centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
         centerPanel.setBackground(new Color(240, 240, 255));
         centerPanel.setBorder(BorderFactory.createEmptyBorder(50, 0, 50, 0));
 
-        // ---- Giriş paneli ----
         JPanel loginPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -186,7 +169,6 @@ public class RiskClient extends JFrame {
         loginPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
         loginPanel.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
 
-        // Üst başlık
         JLabel loginHeader = new JLabel("Oyuna Katıl", JLabel.CENTER);
         loginHeader.setFont(new Font("Arial", Font.BOLD, 24));
         loginHeader.setForeground(new Color(60, 60, 120));
@@ -229,9 +211,7 @@ public class RiskClient extends JFrame {
         advancedPanel.setOpaque(false);
         advancedPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         advancedPanel.setVisible(false);
-        advancedOptionsCheckbox.setVisible(false); // Gelişmiş ayar kutusunu gizle
-//serverIPField.setVisible(false); // IP alanını gizle
-//portField.setVisible(false);     // Port alanını gizle
+        advancedOptionsCheckbox.setVisible(false); 
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -340,15 +320,6 @@ public class RiskClient extends JFrame {
         contentPanel.add(menuPanel, "menu");
     }
 
-    /**
-     * Stilize edilmiş metin alanı oluşturur.
-     */
-    /**
-     * Şık buton oluşturur.
-     */
-    /**
-     * Stilize edilmiş metin alanı oluşturur.
-     */
     private JTextField createStyledTextField(String initialText, String tooltip) {
         JTextField field = new JTextField(initialText, 15);
         field.setToolTipText(tooltip);
@@ -360,9 +331,7 @@ public class RiskClient extends JFrame {
         return field;
     }
 
-    /**
-     * Şık buton oluşturur.
-     */
+  
     private JButton createStylishButton(String text, int width, int height, Color baseColor, Color hoverColor) {
         JButton button = new JButton(text);
         button.setPreferredSize(new Dimension(width, height));
@@ -394,9 +363,6 @@ public class RiskClient extends JFrame {
         return button;
     }
 
-    /**
-     * Menü butonu oluşturur.
-     */
     private JButton createMenuButton(String text, int width, int height) {
         JButton button = new JButton(text);
         button.setPreferredSize(new Dimension(width, height));
@@ -408,10 +374,7 @@ public class RiskClient extends JFrame {
         return button;
     }
 
-    /**
-     * Oyun sonu ekranını oluşturur.
-     */
-
+  
     private void initializeGameOverScreen() {
     gameOverPanel = new JPanel(new BorderLayout());
     gameOverPanel.setBackground(new Color(240, 240, 255));
@@ -498,9 +461,6 @@ public class RiskClient extends JFrame {
 }
 
 
-    /**
-     * Oyun ekranını oluşturur.
-     */
     private void initializeGameScreen() {
         mainPanel = new JPanel(new BorderLayout());
 
@@ -553,9 +513,7 @@ public class RiskClient extends JFrame {
         contentPanel.add(mainPanel, "game");
     }
 
-    /**
-     * Bağlantı panelini oluşturur.
-     */
+    
     private JPanel createConnectionPanel() {
         JPanel panel = new JPanel(new GridBagLayout());
         panel.setBorder(BorderFactory.createTitledBorder("Sunucu Bağlantısı"));
@@ -573,12 +531,7 @@ public class RiskClient extends JFrame {
         return panel;
     }
 
-    /**
-     * Kontrol panelini oluşturur.
-     */
-// createControlPanel metodunda:
-
-    
+ 
     
     private JPanel createControlPanel() {
     JPanel panel = new JPanel();
@@ -695,30 +648,7 @@ public class RiskClient extends JFrame {
         return button;
     }
 
-    private JButton createUnifiedButton(String text, Color color) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setForeground(Color.WHITE);
-        button.setBackground(color);
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
 
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(color.brighter());
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(color);
-            }
-        });
-
-        return button;
-    }
-
-// Güncellenmiş sohbet paneli: modern boşluklar ve yukarı hizalı giriş
     private JPanel createChatPanel() {
         JPanel panel = new JPanel();
         panel.setLayout(new BorderLayout(10, 10));
@@ -772,9 +702,7 @@ public class RiskClient extends JFrame {
         return panel;
     }
 
-    /**
-     * Sunucuya bağlanır. Geliştirilmiş soket bağlantısı kullanır.
-     */
+   
     public void connectToServer() {
         serverIP = "13.60.58.114";  // Sabit IP
         int port = 9034;            // Sabit port
@@ -831,9 +759,7 @@ public class RiskClient extends JFrame {
         }
     }
 
-    /**
-     * Sunucu bağlantısını keser.
-     */
+    
 public void disconnectFromServer() {
     if (connected) {
         try {
@@ -911,9 +837,9 @@ public void disconnectFromServer() {
         • Sadece komşu bölgelere saldırabilirsiniz.
         • Tüm bölgeleri ele geçiren oyuncu oyunu kazanır.
         
-        🎯 Amaç: Haritadaki tüm bölgeleri ele geçir!
+        Amaç: Haritadaki tüm bölgeleri ele geçir!
 
-        🏆 Bol şans!
+         Bol şans!
         """);
         textArea.setEditable(false);
         textArea.setFont(new Font("Segoe UI", Font.PLAIN, 14));
@@ -970,27 +896,16 @@ public void disconnectFromServer() {
 }
 
     
-    private void disableActionButtons() {
-    if (placeArmyButton != null) placeArmyButton.setEnabled(false);
-    if (attackButton != null) attackButton.setEnabled(false);
-    if (fortifyButton != null) fortifyButton.setEnabled(false);
-    if (armyCountComboBox != null) armyCountComboBox.setEnabled(false);
-}
 
     
 
-    /**
-     * Durum etiketini günceller.
-     */
+   
     public void updateStatusLabel(String message) {
         if (statusLabel != null) {
             statusLabel.setText(message);
         }
     }
 
-    /**
-     * Geçerli aksiyonu ayarlar.
-     */
     private void setCurrentAction(ActionType action) {
         System.out.println("setCurrentAction çağrıldı: " + action); // Debug için
 
@@ -1031,9 +946,7 @@ public void disconnectFromServer() {
         mapPanel.repaint();
     }
 
-    /**
-     * Seçilen aksiyon ve bölgeye göre birlik sayısı ComboBox'ını günceller
-     */
+   
     private void updateArmyCountComboBox(ActionType action) {
         System.out.println("updateArmyCountComboBox çağrıldı: " + action); // Debug için
 
@@ -1165,7 +1078,6 @@ public void disconnectFromServer() {
                 break;
         }
 
-        // Eğer hiçbir seçenek eklenmemişse, en azından 1 ekle
         if (armyCountComboBox.getItemCount() == 0) {
             armyCountComboBox.addItem(1);
             System.out.println("Hiç seçenek eklenmedi, varsayılan olarak 1 ekleniyor");
@@ -1177,7 +1089,6 @@ public void disconnectFromServer() {
             System.out.println(" - " + armyCountComboBox.getItemAt(i));
         }
     }
-// ComboBox'ta bir değerin olup olmadığını kontrol eden yardımcı metot
 
     private boolean containsItem(JComboBox<Integer> comboBox, int value) {
         for (int i = 0; i < comboBox.getItemCount(); i++) {
@@ -1188,9 +1099,7 @@ public void disconnectFromServer() {
         return false;
     }
 
-    /**
-     * Bir bölgeye tıklandığında çağrılır.
-     */
+   
     public void territoryClicked(String territoryName) {
         if (!connected || gameState == null || !gameState.isGameStarted()) {
             return;
@@ -1234,9 +1143,6 @@ public void disconnectFromServer() {
         mapPanel.repaint();
     }
 
-    /**
-     * Birlik yerleştirme işlemini gerçekleştirir.
-     */
     private void handlePlaceArmy(String territoryName) {
         Territory territory = gameState.getTerritories().get(territoryName);
 
@@ -1271,9 +1177,6 @@ public void disconnectFromServer() {
 
     }
 
-    /**
-     * Saldırı işlemini gerçekleştirir.
-     */
     private void handleAttack(String territoryName) {
         if (selectedTerritory == null) {
             // İlk tıklama - saldıran bölgeyi seç
@@ -1361,9 +1264,7 @@ public void disconnectFromServer() {
 
     }
 
-    /**
-     * Takviye işlemini gerçekleştirir.
-     */
+    
     private void handleFortify(String territoryName) {
         if (selectedTerritory == null) {
             // İlk tıklama - kaynak bölgeyi seç
@@ -1416,9 +1317,7 @@ public void disconnectFromServer() {
        
     }
 
-    /**
-     * Oyunu başlatır.
-     */
+   
     public void startGame() {
         if (connected) {
             try {
@@ -1431,9 +1330,7 @@ public void disconnectFromServer() {
         }
     }
 
-    /**
-     * Log mesajı ekler.
-     */
+   
     public void addLogMessage(String message) {
         String fullMessage = "[Sistem] " + message;
 
@@ -1448,17 +1345,12 @@ public void disconnectFromServer() {
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
-    /**
-     * Sohbet mesajı ekler.
-     */
+   
     public void addChatMessage(String sender, String message) {
         chatArea.append("[" + sender + "] " + message + "\n");
         chatArea.setCaretPosition(chatArea.getDocument().getLength());
     }
 
-    /**
-     * Bağlantının sağlıklı olup olmadığını kontrol eder.
-     */
     public void checkConnection() {
         if (connected && socket != null) {
             if (socket.isClosed() || !socket.isConnected()) {
@@ -1468,9 +1360,7 @@ public void disconnectFromServer() {
         }
     }
 
-    /**
-     * Oyun durumunu günceller.
-     */
+  
 public void updateGameState(GameState newState) {
     System.out.println("\n=== YENİ OYUN DURUMU ALINDI ===");
 
@@ -1521,9 +1411,7 @@ public void updateGameState(GameState newState) {
     System.out.println("=== OYUN DURUMU GÜNCELLENDİ ===\n");
 }
 
-    /**
-     * Oyuncu bilgilerini günceller.
-     */
+   
     private void updatePlayerInfo() {
         if (gameState == null) {
             return;
@@ -1560,9 +1448,7 @@ public void updateGameState(GameState newState) {
         }
     }
 
-    /**
-     * Oyun sonu durumunu yönetir ve kazananı gösterir.
-     */
+   
     public void handleGameEnd(String winner) {
         SwingUtilities.invokeLater(() -> {
             // Oyun sonu ekranında kazananı göster
@@ -1590,10 +1476,7 @@ public void updateGameState(GameState newState) {
         return input;
     }
 
-    /**
-     * Output stream'ini döndürür. ClientListener'ın mesaj göndermesi için
-     * kullanılır.
-     */
+    
     public ObjectOutputStream getOutput() {
         return output;
     }

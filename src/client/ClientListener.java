@@ -5,10 +5,7 @@ import common.Message;
 import java.io.IOException;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
-        
-/**
- * İstemci dinleyici sınıfı. Sunucudan gelen mesajları işler.
- */
+
 public class ClientListener implements Runnable {
     private boolean running;
     private RiskClient client;
@@ -63,10 +60,6 @@ public class ClientListener implements Runnable {
         System.out.println("ClientListener sonlandırıldı");
     }
     
-    /**
-     * Gelen mesajı işler.
-     * İyileştirilmiş oyun sonu yönetimi eklendi.
-     */
     private void handleMessage(Message message) {
         System.out.println("Mesaj işleniyor: " + message.getType());
         
@@ -83,8 +76,8 @@ public class ClientListener implements Runnable {
             case PLAYER_ELIMINATED:
                 client.addLogMessage(message.getContent());
                 break;
-            case PLAYER_READY:  // YENİ EKLENEN
-                client.addLogMessage(message.getContent()); // Hazır oyuncuları göster
+            case PLAYER_READY:
+                client.addLogMessage(message.getContent());
                 break;
             case GAME_READY:
                 client.addLogMessage(message.getContent());
@@ -93,7 +86,6 @@ public class ClientListener implements Runnable {
                                                           "Oyun Hazır", 
                                                           JOptionPane.YES_NO_OPTION);
                 if (response == JOptionPane.YES_OPTION) {
-                    // START_GAME yerine PLAYER_READY gönder
                     try {
                         Message readyMessage = new Message(client.getUsername(), "", MessageType.PLAYER_READY);
                         client.getOutput().writeObject(readyMessage);
@@ -111,10 +103,8 @@ public class ClientListener implements Runnable {
                 client.addLogMessage(message.getContent());
                 client.setGameControlsEnabled(false);
                 
-                // Kazananı kontrol et
                 String winner = null;
                 if (message.getContent().contains(" kazandı!")) {
-                    // "Oyuncu1 kazandı! Oyun sona erdi." formatından kazananı çıkar
                     winner = message.getContent().split(" kazandı!")[0].trim();
                 }
                 client.handleGameEnd(winner);
@@ -142,6 +132,4 @@ public class ClientListener implements Runnable {
                 break;
         }
     }
-    
-    
 }

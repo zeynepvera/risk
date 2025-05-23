@@ -7,9 +7,7 @@ import common.Territory;
 import java.io.Serializable;
 import java.util.*;
 
-/**
- * Server tarafı için GameState sınıfı. Oyun mantığını içerir.
- */
+
 public class ServerGameState implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -21,9 +19,7 @@ public class ServerGameState implements Serializable {
     private boolean gameStarted = false;
     private String currentPlayer;
 
-    /**
-     * Oyunu başlatır ve haritayı oluşturur.
-     */
+   
     public void initializeGame(List<String> playerNames) {
         // Oyun başlatılmadan önce sıfırla
         territories.clear();
@@ -65,9 +61,7 @@ public class ServerGameState implements Serializable {
         gameStarted = true;
     }
 
-    /**
-     * Başlangıç birlik sayısını hesaplar.
-     */
+    
     private int calculateInitialArmies(int playerCount) {
         switch (playerCount) {
             case 2:
@@ -83,9 +77,7 @@ public class ServerGameState implements Serializable {
         }
     }
 
-    /**
-     * Kıtaları oluşturur.
-     */
+    
     private void createContinents() {
         continents.put("KUZEY_AMERIKA", new Continent("KUZEY_AMERIKA", 5));
         continents.put("GUNEY_AMERIKA", new Continent("GUNEY_AMERIKA", 2));
@@ -95,9 +87,7 @@ public class ServerGameState implements Serializable {
         continents.put("AVUSTRALYA", new Continent("AVUSTRALYA", 2));
     }
 
-    /**
-     * Bölgeleri oluşturur ve komşuluk ilişkilerini tanımlar.
-     */
+   
     private void createTerritories() {
         // Kuzey Amerika bölgeleri
         territories.put("ALASKA", new Territory("ALASKA", "KUZEY_AMERIKA"));
@@ -224,9 +214,7 @@ public class ServerGameState implements Serializable {
         }
     }
 
-    /**
-     * Bölgeleri oyunculara rastgele dağıtır.
-     */
+   
     private void distributeTerritoriesRandomly() {
         if (playerList.isEmpty()) {
             return;
@@ -248,9 +236,6 @@ public class ServerGameState implements Serializable {
         }
     }
 
-    /**
-     * Takviye birlik sayısını hesaplar.
-     */
     public int calculateReinforcementArmies(String playerName) {
         Player player = players.get(playerName);
         if (player == null) {
@@ -278,9 +263,7 @@ public class ServerGameState implements Serializable {
         return baseArmies + continentBonus;
     }
 
-    /**
-     * Bir oyuncunun takviye birliklerini ayarlar.
-     */
+  
     public void setReinforcementArmies(String playerName, int armies) {
         Player player = players.get(playerName);
         if (player != null) {
@@ -288,9 +271,7 @@ public class ServerGameState implements Serializable {
         }
     }
 
-    /**
-     * Birlik yerleştirme hareketinin geçerli olup olmadığını kontrol eder.
-     */
+    
     public boolean canPlaceArmy(String playerName, String territoryName, int armies) {
         Player player = players.get(playerName);
         Territory territory = territories.get(territoryName);
@@ -308,9 +289,7 @@ public class ServerGameState implements Serializable {
         return true;
     }
 
-   /**
- * Birlik yerleştirir.
- */
+ 
 public void placeArmy(String playerName, String territoryName, int armies) {
     System.out.println("\n=== BIRLIK YERLESTIRME ISLEMI ===");
     System.out.println("placeArmy çağrıldı: Oyuncu=" + playerName + ", Bölge=" + territoryName + ", Birlik=" + armies);
@@ -335,9 +314,7 @@ public void placeArmy(String playerName, String territoryName, int armies) {
     System.out.println("Kalan takviye birlik: " + player.getReinforcementArmies());
     System.out.println("=== BIRLIK YERLESTIRME TAMAMLANDI ===\n");
 }
-    /**
-     * Saldırı hareketinin geçerli olup olmadığını kontrol eder.
-     */
+   
     public boolean canAttack(String playerName, String sourceTerritory, String targetTerritory, int armies) {
         Territory source = territories.get(sourceTerritory);
         Territory target = territories.get(targetTerritory);
@@ -363,13 +340,7 @@ public void placeArmy(String playerName, String territoryName, int armies) {
         return true;
     }
 
-    /**
-     * Saldırı yapar ve sonucu döndürür.
-     */
-
-/**
- * Saldırı yapar ve sonucu döndürür. İstemciden gelen zarları kullanabilir.
- */
+   
 public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies, int[] clientAttackDice, int[] clientDefenseDice) {
     if (!canAttack(playerName, sourceTerritory, targetTerritory, attackingArmies)) {
         return new AttackResult(false, "Geçersiz saldırı!", null);
@@ -501,9 +472,7 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
     return result;
 }
 
-/**
- * Eski metodla geriye dönük uyumluluk için wrapper.
- */
+
 public AttackResult attack(String playerName, String sourceTerritory, String targetTerritory, int attackingArmies) {
     if (!canAttack(playerName, sourceTerritory, targetTerritory, attackingArmies)) {
         return new AttackResult(false, "Geçersiz saldırı!", null);
@@ -584,9 +553,7 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
         return dice;
     }
 
-    /**
-     * Diziyi tersine çevirir.
-     */
+   
     private void reverseArray(int[] array) {
         for (int i = 0; i < array.length / 2; i++) {
             int temp = array[i];
@@ -595,9 +562,7 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
         }
     }
 
-    /**
-     * Birlik taşıma hareketinin geçerli olup olmadığını kontrol eder.
-     */
+   
     public boolean canFortify(String playerName, String sourceTerritory, String targetTerritory, int armies) {
         Territory source = territories.get(sourceTerritory);
         Territory target = territories.get(targetTerritory);
@@ -617,17 +582,13 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
         return true;
     }
 
-    /**
-     * İki bölge arasında bağlantı olup olmadığını kontrol eder.
-     */
+   
     private boolean isConnected(String sourceTerritory, String targetTerritory, String playerName) {
         Set<String> visited = new HashSet<>();
         return isConnectedDFS(sourceTerritory, targetTerritory, playerName, visited);
     }
 
-    /**
-     * DFS algoritması ile bağlantı kontrolü yapar.
-     */
+  
     private boolean isConnectedDFS(String currentTerritory, String targetTerritory, String playerName, Set<String> visited) {
         if (currentTerritory.equals(targetTerritory)) {
             return true;
@@ -654,9 +615,7 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
         return false;
     }
 
-    /**
-     * Birlik taşır.
-     */
+    
     public void fortify(String playerName, String sourceTerritory, String targetTerritory, int armies) {
         if (!canFortify(playerName, sourceTerritory, targetTerritory, armies)) {
             return;
@@ -669,9 +628,7 @@ public AttackResult attack(String playerName, String sourceTerritory, String tar
         target.addArmies(armies);
     }
 
-    /**
-     * Kazananı kontrol eder.
-     */
+    
     public String checkWinner() {
         String winner = null;
         int activePlayers = 0;

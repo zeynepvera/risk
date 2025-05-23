@@ -8,9 +8,7 @@ import java.awt.event.*;
 import java.awt.image.BufferedImage;
 import java.util.Arrays;
 
-/**
- * Zar atma diyaloğu. Saldırı sırasında zarları gösterir.
- */
+
 public class DiceDialog extends JDialog {
     private static final long serialVersionUID = 1L;
     
