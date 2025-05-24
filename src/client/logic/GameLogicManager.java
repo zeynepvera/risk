@@ -4,8 +4,6 @@ import client.DiceDialog;
 import client.RiskClient;
 import common.*;
 
-import javax.swing.*;
-import java.io.IOException;
 import java.util.Arrays;
 
 public class GameLogicManager {

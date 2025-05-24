@@ -897,9 +897,9 @@ mainMenuButton.addActionListener(e -> {
             }
         }
     }
-    /**
- * Oyunu tamamen sıfırlar - yeni kullanıcı gibi yapar
- */
+    
+ // Oyunu tamamen sıfırlar - yeni kullanıcı gibi yapar
+ 
 private void completeReset() {
     System.out.println("=== TAM SIFIRLAMA BAŞLATIYOR ===");
     

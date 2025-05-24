@@ -30,6 +30,7 @@ public class NetworkManager {
         this.parent = parent;
     }
     
+    //CLIENT TARAFINDA SOCKET BAGLANTI 
     public void connectToServer(String username) {
         this.serverIP = "13.60.58.114";  // Sabit IP
         int port = 9034;                  // Sabit port
@@ -51,6 +52,8 @@ public class NetworkManager {
         try {
             parent.updateStatusLabel("Bağlanıyor: " + serverIP + ":" + port + "...");
             Socket socket = new Socket();
+            
+            //TIMEOUT kontrolu burada
             socket.connect(new InetSocketAddress(serverIP, port), 10000);
             socket.setSoTimeout(300000);
 
@@ -66,6 +69,8 @@ public class NetworkManager {
             output.flush();
             System.out.println("Giriş mesajı gönderildi.");
 
+            //BURADA sunucudan geln nesajlari dinleyen thread
+            
             clientListener = new ClientListener(parent);
             new Thread(clientListener).start();
 
@@ -127,6 +132,8 @@ public class NetworkManager {
             }
         }
     }
+    
+    //CLIENT TARAFI
     
     public void sendMessage(Message message) {
         if (connected && output != null) {

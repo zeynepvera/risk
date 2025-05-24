@@ -61,6 +61,7 @@ public class RiskServer {
         }
     }
 
+    //SERVER TARAFINDA SOCKET CBAĞLANTİ ve thread model
     public void startServer() {
         try {
             serverSocket = new ServerSocket(PORT, 20, InetAddress.getByName("0.0.0.0"));
@@ -76,10 +77,12 @@ public class RiskServer {
 
             while (running) {
                 try {
+                    //server ana threadi sürekli yeni baglantilari bekler
                     Socket clientSocket = serverSocket.accept();
                     clientSocket.setSoTimeout(300000);
                     System.out.println("Yeni bağlantı: " + clientSocket.getInetAddress());
-
+                    //HER yeni bağlanti iin de clienthandler nesnesi olsuturur  ayrı bir thread baslatılır
+                    //yani thread per connection modeli kullanılıyo
                     if (clients.size() < 100) {
                         ClientHandler clientHandler = new ClientHandler(clientSocket, this);
                         Thread clientThread = new Thread(clientHandler);
@@ -125,6 +128,8 @@ public class RiskServer {
         }
     }
 
+    
+    //SENKronize kelimesini kullanark güvenligi saglıyoz
     public synchronized void registerClient(String username, ClientHandler clientHandler) {
         try {
             if (username == null || username.trim().isEmpty()

@@ -44,6 +44,10 @@ public class ClientListener implements Runnable {
                     System.err.println("Mesaj okuma hatası: " + e);
                     e.printStackTrace();
                     if (running) {
+                        
+                        //BURAD clıent tarafında gelen mesajı dinlemek için ayrı bi thread kullanılıyo
+                        //bu thread sürekli olarak readObject() çağrısı ile sunucudan mesaj bekler.
+                        //mesaj alındığında da swing.inovıke ile gui güncellenır
                         SwingUtilities.invokeLater(() -> {
                             client.addLogMessage("Sunucu bağlantısı kesildi: " + e);
                             client.disconnectFromServer();

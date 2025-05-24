@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
-import java.util.List;
 
 public class ClientHandler implements Runnable {
 
@@ -20,6 +19,7 @@ public class ClientHandler implements Runnable {
     private boolean running;
     private GameRoom currentRoom;
 
+   // CLIENTIN BAĞLANTI İŞLEMESİ(Sunucuda her bir istemci bağlantısını yönetiyo)
     public ClientHandler(Socket socket, RiskServer server) {
         this.clientSocket = socket;
         this.server = server;
@@ -34,6 +34,8 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    
+    //BURADAD DA THREAD KULLANDIM. ilk login bekliyom sonra sürekli mesaj okuma ilmee döngüsü
     @Override
     public void run() {
         try {
@@ -105,6 +107,7 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    //SERVER TARAFI
     public void sendMessage(Message message) {
         try {
             output.writeObject(message);
