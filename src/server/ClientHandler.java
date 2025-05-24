@@ -86,13 +86,12 @@ public class ClientHandler implements Runnable {
                 }
             }
 
-           case SURRENDER -> {
+          case SURRENDER -> {
     GameRoom room = getCurrentRoom();
     if (room != null) {
-        room.removePlayer(this); // removePlayer zaten oyuncuyu listeden çıkarıyor ve diğer oyuncuya bildiriyor
+        room.handlePlayerSurrender(this); // YENİ METOD
     }
     running = false;
-    server.unregisterClient(username);
 }
 
 

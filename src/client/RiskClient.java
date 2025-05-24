@@ -1,6 +1,5 @@
 package client;
 
-import common.GameAction;
 import common.GameState;
 import common.MessageType;
 import common.Territory;
@@ -12,46 +11,34 @@ import javax.swing.border.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+
 
 import java.awt.GradientPaint;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
-import java.util.Arrays;
-import java.util.Map;
-import client.DiceDialog;
-import common.MapPanel;
 
+import java.awt.geom.RoundRectangle2D;
+
+import common.MapPanel;
+import client.gui.UIComponentFactory;
+import client.network.NetworkManager;
+import client.logic.GameLogicManager;
 
 public class RiskClient extends JFrame {
 
     private static final long serialVersionUID = 1L;
-
-    // Ağ bağlantısı
     private static final int PORT = 9034;
-    private String serverIP;
-    private Socket socket;
-    private ObjectOutputStream output;
-    private ObjectInputStream input;
-    private String username;
-    private boolean connected;
-    private ClientListener clientListener;
-
-    // Oyun durumu
-    private GameState gameState;
-    private String selectedTerritory;
-    private ActionType currentAction;
+    
+    // Manager instances
+    private NetworkManager networkManager;
+    private GameLogicManager gameLogicManager;
 
     // GUI bileşenleri
-    private CardLayout cardLayout; // Farklı ekranlar arasında geçiş için
-    private JPanel contentPanel; // Ana içerik paneli (tüm ekranları içerir)
-    private JPanel mainPanel; // Oyun ana paneli
-    private JPanel menuPanel; // Başlangıç menü paneli
-    private JPanel gameOverPanel; // Oyun sonu paneli
+    private CardLayout cardLayout;
+    private JPanel contentPanel;
+    private JPanel mainPanel;
+    private JPanel menuPanel;
+    private JPanel gameOverPanel;
     private MapPanel mapPanel;
     private JTextArea chatArea;
     private JTextField chatField;
@@ -67,10 +54,9 @@ public class RiskClient extends JFrame {
     private JTextField serverIPField;
     private JTextField usernameField;
     private JTextField portField;
-    private JLabel winnerLabel; // Kazanan gösterimi için eklendi
+    private JLabel winnerLabel;
     private String lastSystemMessage = null;
 
-   
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             RiskClient client = new RiskClient();
@@ -89,6 +75,10 @@ public class RiskClient extends JFrame {
         contentPanel = new JPanel(cardLayout);
         setContentPane(contentPanel);
 
+        // Manager'ları başlat
+        networkManager = new NetworkManager(this);
+        gameLogicManager = new GameLogicManager(this);
+
         // Ekranları oluştur ve ekle
         initializeMenuScreen();
         initializeGameScreen();
@@ -106,7 +96,6 @@ public class RiskClient extends JFrame {
         });
     }
 
-   
     private void initializeMenuScreen() {
         menuPanel = new JPanel(new BorderLayout());
         menuPanel.setBackground(new Color(240, 240, 255));
@@ -149,17 +138,14 @@ public class RiskClient extends JFrame {
                 int width = getWidth();
                 int height = getHeight();
 
-                // Panel için gradient arka plan
                 GradientPaint gp = new GradientPaint(0, 0, new Color(250, 250, 255),
                         0, height, new Color(235, 235, 255));
                 g2d.setPaint(gp);
 
-                // Yuvarlak köşeli panel
                 RoundRectangle2D roundedRectangle = new RoundRectangle2D.Float(
                         0, 0, width - 1, height - 1, 20, 20);
                 g2d.fill(roundedRectangle);
 
-                // İnce kenar çizgisi
                 g2d.setColor(new Color(200, 200, 230));
                 g2d.draw(roundedRectangle);
             }
@@ -193,7 +179,7 @@ public class RiskClient extends JFrame {
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        usernameField = createStyledTextField("", "Oyunda görünecek adınızı girin");
+        usernameField = UIComponentFactory.createStyledTextField("", "Oyunda görünecek adınızı girin");
         usernameField.setFont(new Font("Arial", Font.PLAIN, 14));
         formPanel.add(usernameField, gbc);
 
@@ -211,7 +197,7 @@ public class RiskClient extends JFrame {
         advancedPanel.setOpaque(false);
         advancedPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
         advancedPanel.setVisible(false);
-        advancedOptionsCheckbox.setVisible(false); 
+        advancedOptionsCheckbox.setVisible(false);
 
         gbc.gridx = 0;
         gbc.gridy = 0;
@@ -223,7 +209,7 @@ public class RiskClient extends JFrame {
         gbc.gridx = 1;
         gbc.gridy = 0;
         gbc.gridwidth = 2;
-        serverIPField = createStyledTextField("localhost", "Sunucu IP adresi");
+        serverIPField = UIComponentFactory.createStyledTextField("localhost", "Sunucu IP adresi");
         serverIPField.setFont(new Font("Arial", Font.PLAIN, 14));
         advancedPanel.add(serverIPField, gbc);
 
@@ -237,14 +223,9 @@ public class RiskClient extends JFrame {
         gbc.gridx = 1;
         gbc.gridy = 1;
         gbc.gridwidth = 2;
-        portField = createStyledTextField(String.valueOf(PORT), "Sunucu port numarası");
+        portField = UIComponentFactory.createStyledTextField(String.valueOf(PORT), "Sunucu port numarası");
         portField.setFont(new Font("Arial", Font.PLAIN, 14));
         advancedPanel.add(portField, gbc);
-
-        // AWS buton için ayrı panel
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 3;
 
         // Gelişmiş seçenekler toggle aksiyonu
         advancedOptionsCheckbox.addActionListener(e -> {
@@ -266,7 +247,7 @@ public class RiskClient extends JFrame {
         buttonPanel.setLayout(new FlowLayout(FlowLayout.CENTER, 20, 10));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
-        JButton playButton = createStylishButton("OYUNA BAŞLA", 200, 50, new Color(60, 130, 200), new Color(100, 160, 220));
+        JButton playButton = UIComponentFactory.createStylishButton("OYUNA BAŞLA", 200, 50, new Color(60, 130, 200), new Color(100, 160, 220));
         playButton.setFont(new Font("Arial", Font.BOLD, 16));
         playButton.addActionListener(e -> {
             if (usernameField.getText().trim().isEmpty()) {
@@ -284,16 +265,15 @@ public class RiskClient extends JFrame {
             connectToServer();
         });
 
-        JButton exitButton = createStylishButton("ÇIKIŞ", 150, 50, new Color(190, 60, 60), new Color(220, 80, 80));
+        JButton exitButton = UIComponentFactory.createStylishButton("ÇIKIŞ", 150, 50, new Color(190, 60, 60), new Color(220, 80, 80));
         exitButton.setFont(new Font("Arial", Font.BOLD, 16));
         exitButton.addActionListener(e -> System.exit(0));
 
-        JButton howToPlayButton = createStylishButton("NASIL OYNANIR?", 200, 50, new Color(50, 80, 130), new Color(70, 100, 160));
+        JButton howToPlayButton = UIComponentFactory.createStylishButton("NASIL OYNANIR?", 200, 50, new Color(50, 80, 130), new Color(70, 100, 160));
         howToPlayButton.setFont(new Font("Arial", Font.BOLD, 16));
         howToPlayButton.addActionListener(e -> showHowToPlayDialog());
 
-        buttonPanel.add(howToPlayButton); // Bunu önce ekle, sonra playButton ve exitButton ekle
-
+        buttonPanel.add(howToPlayButton);
         buttonPanel.add(playButton);
         buttonPanel.add(exitButton);
 
@@ -305,7 +285,7 @@ public class RiskClient extends JFrame {
 
         menuPanel.add(centerPanel, BorderLayout.CENTER);
 
-        // ---- Alt bilgi paneli ----
+        // Alt bilgi paneli
         JPanel footerPanel = new JPanel();
         footerPanel.setBackground(new Color(50, 50, 100));
         footerPanel.setPreferredSize(new Dimension(1200, 50));
@@ -316,152 +296,89 @@ public class RiskClient extends JFrame {
 
         menuPanel.add(footerPanel, BorderLayout.SOUTH);
 
-        // İçerik paneline ekle
         contentPanel.add(menuPanel, "menu");
     }
 
-    private JTextField createStyledTextField(String initialText, String tooltip) {
-        JTextField field = new JTextField(initialText, 15);
-        field.setToolTipText(tooltip);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(180, 180, 210), 1, true),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-        field.setFont(new Font("Arial", Font.PLAIN, 14));
-        return field;
-    }
+    private void initializeGameOverScreen() {
+        gameOverPanel = new JPanel(new BorderLayout());
+        gameOverPanel.setBackground(new Color(240, 240, 255));
 
-  
-    private JButton createStylishButton(String text, int width, int height, Color baseColor, Color hoverColor) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(width, height));
-        button.setFont(new Font("Arial", Font.BOLD, 16));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setBackground(baseColor);
-        button.setForeground(Color.WHITE);
+        // Başlık paneli
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(new Color(50, 50, 100));
+        titlePanel.setPreferredSize(new Dimension(1200, 150));
 
-        // Hover efekti
-        button.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                button.setBackground(hoverColor);
-            }
+        JLabel titleLabel = new JLabel("OYUN SONA ERDİ");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
+        titleLabel.setForeground(Color.WHITE);
+        titlePanel.add(titleLabel);
+        gameOverPanel.add(titlePanel, BorderLayout.NORTH);
 
-            @Override
-            public void mouseExited(MouseEvent e) {
-                button.setBackground(baseColor);
-            }
+        // Sonuç paneli
+        JPanel resultPanel = new JPanel();
+        resultPanel.setLayout(new BoxLayout(resultPanel, BoxLayout.Y_AXIS));
+        resultPanel.setBackground(new Color(240, 240, 255));
+        resultPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
+
+        winnerLabel = new JLabel("Kazanan: ");
+        winnerLabel.setFont(new Font("Arial", Font.BOLD, 36));
+        winnerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        resultPanel.add(winnerLabel);
+
+        resultPanel.add(Box.createRigidArea(new Dimension(0, 50)));
+
+        // Butonlar
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setBackground(new Color(240, 240, 255));
+
+        JButton newGameButton = UIComponentFactory.createMenuButton("Yeni Oyun", 200, 50);
+        newGameButton.addActionListener(e -> {
+            disconnectFromServer();
+            resetClientState();
+            cardLayout.show(contentPanel, "menu");
         });
 
-        // Daha modern görünüm
-        button.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(0, 0, 0, 40), 1),
-                BorderFactory.createEmptyBorder(5, 15, 5, 15)
-        ));
+        JButton mainMenuButton = UIComponentFactory.createMenuButton("Ana Menü", 200, 50);
+        mainMenuButton.addActionListener(e -> {
+            disconnectFromServer();
+            resetClientState();
+            cardLayout.show(contentPanel, "menu");
+        });
 
-        return button;
+        JButton exitButton = UIComponentFactory.createMenuButton("Çıkış", 200, 50);
+        exitButton.addActionListener(e -> System.exit(0));
+
+        buttonPanel.add(newGameButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(mainMenuButton);
+        buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
+        buttonPanel.add(exitButton);
+
+        resultPanel.add(buttonPanel);
+        gameOverPanel.add(resultPanel, BorderLayout.CENTER);
+
+        // Alt bilgi paneli
+        JPanel footerPanel = new JPanel();
+        footerPanel.setBackground(new Color(50, 50, 100));
+        footerPanel.setPreferredSize(new Dimension(1200, 50));
+
+        JLabel footerLabel = new JLabel("© 2025 Risk Oyunu - Tüm hakları saklıdır.");
+        footerLabel.setForeground(Color.WHITE);
+        footerPanel.add(footerLabel);
+        gameOverPanel.add(footerPanel, BorderLayout.SOUTH);
+
+        contentPanel.add(gameOverPanel, "gameOver");
     }
 
-    private JButton createMenuButton(String text, int width, int height) {
-        JButton button = new JButton(text);
-        button.setPreferredSize(new Dimension(width, height));
-        button.setFont(new Font("Arial", Font.BOLD, 16));
-        button.setFocusPainted(false);
-        button.setBorderPainted(false);
-        button.setBackground(new Color(70, 130, 180));
-        button.setForeground(Color.WHITE);
-        return button;
-    }
-
-  
-    private void initializeGameOverScreen() {
-    gameOverPanel = new JPanel(new BorderLayout());
-    gameOverPanel.setBackground(new Color(240, 240, 255));
-
-    // Başlık paneli
-    JPanel titlePanel = new JPanel();
-    titlePanel.setBackground(new Color(50, 50, 100));
-    titlePanel.setPreferredSize(new Dimension(1200, 150));
-
-    JLabel titleLabel = new JLabel("OYUN SONA ERDİ");
-    titleLabel.setFont(new Font("Arial", Font.BOLD, 48));
-    titleLabel.setForeground(Color.WHITE);
-    titlePanel.add(titleLabel);
-    gameOverPanel.add(titlePanel, BorderLayout.NORTH);
-
-    // Sonuç paneli
-    JPanel resultPanel = new JPanel();
-    resultPanel.setLayout(new BoxLayout(resultPanel, BoxLayout.Y_AXIS));
-    resultPanel.setBackground(new Color(240, 240, 255));
-    resultPanel.setBorder(BorderFactory.createEmptyBorder(30, 0, 30, 0));
-
-    winnerLabel = new JLabel("Kazanan: ");
-    winnerLabel.setFont(new Font("Arial", Font.BOLD, 36));
-    winnerLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-    resultPanel.add(winnerLabel);
-
-    resultPanel.add(Box.createRigidArea(new Dimension(0, 50)));
-
-    // Butonlar
-    JPanel buttonPanel = new JPanel();
-    buttonPanel.setBackground(new Color(240, 240, 255));
-
-    JButton newGameButton = createMenuButton("Yeni Oyun", 200, 50);
-    newGameButton.addActionListener(e -> {
-        disconnectFromServer();
-        resetClientState();  // 🧼 GUI ve oyun durumu temizliği
-        cardLayout.show(contentPanel, "menu");
-    });
-
-    JButton mainMenuButton = createMenuButton("Ana Menü", 200, 50);
-    mainMenuButton.addActionListener(e -> {
-        disconnectFromServer();
-        resetClientState();
-        cardLayout.show(contentPanel, "menu");
-    });
-
-    JButton exitButton = createMenuButton("Çıkış", 200, 50);
-    exitButton.addActionListener(e -> System.exit(0));
-
-    buttonPanel.add(newGameButton);
-    buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
-    buttonPanel.add(mainMenuButton);
-    buttonPanel.add(Box.createRigidArea(new Dimension(20, 0)));
-    buttonPanel.add(exitButton);
-
-    resultPanel.add(buttonPanel);
-    gameOverPanel.add(resultPanel, BorderLayout.CENTER);
-
-    // Alt bilgi paneli
-    JPanel footerPanel = new JPanel();
-    footerPanel.setBackground(new Color(50, 50, 100));
-    footerPanel.setPreferredSize(new Dimension(1200, 50));
-
-    JLabel footerLabel = new JLabel("© 2025 Risk Oyunu - Tüm hakları saklıdır.");
-    footerLabel.setForeground(Color.WHITE);
-    footerPanel.add(footerLabel);
-    gameOverPanel.add(footerPanel, BorderLayout.SOUTH);
-
-    // İçerik paneline ekle
-    contentPanel.add(gameOverPanel, "gameOver");
-}
-    
     private void resetClientState() {
-    username = null;
-    gameState = null;
-    selectedTerritory = null;
-    currentAction = null;
-    if (statusLabel != null) statusLabel.setText("Bağlantı durumu: Bağlı değil");
-    setGameControlsEnabled(false);
-    chatField.setText("");
-    chatField.setEnabled(false);
-    sendButton.setEnabled(false);
-    chatArea.setText("");
-}
-
-
-    private void initializeGameScreen() {
+        if (statusLabel != null) statusLabel.setText("Bağlantı durumu: Bağlı değil");
+        setGameControlsEnabled(false);
+        if (chatField != null) chatField.setText("");
+        setChatEnabled(false);
+        if (chatArea != null) chatArea.setText("");
+    }
+    
+private void initializeGameScreen() {
         mainPanel = new JPanel(new BorderLayout());
 
         // Oyun haritası paneli
@@ -475,19 +392,19 @@ public class RiskClient extends JFrame {
 
         // Kontrol paneli
         controlPanel = createControlPanel();
-        rightPanel.add(controlPanel, BorderLayout.NORTH); // Üst kısımda olacak
+        rightPanel.add(controlPanel, BorderLayout.NORTH);
 
-        // Durum bilgisi paneli - YENİ
+        // Durum bilgisi paneli
         JPanel statusPanel = new JPanel();
         statusPanel.setLayout(new BoxLayout(statusPanel, BoxLayout.Y_AXIS));
         statusPanel.setBorder(BorderFactory.createTitledBorder("Durum Bilgisi"));
         statusLabel = new JLabel("Bağlantı durumu: Bağlı değil", JLabel.LEFT);
         statusPanel.add(statusLabel);
-        rightPanel.add(statusPanel, BorderLayout.CENTER); // Orta kısımda olacak
+        rightPanel.add(statusPanel, BorderLayout.CENTER);
 
         // Sohbet paneli
         JPanel chatPanel = createChatPanel();
-        rightPanel.add(chatPanel, BorderLayout.SOUTH); // Alt kısımda olacak
+        rightPanel.add(chatPanel, BorderLayout.SOUTH);
 
         // Ana menüye dönüş butonu
         JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -509,145 +426,105 @@ public class RiskClient extends JFrame {
         // Başlangıçta oyun kontrollerini devre dışı bırak
         setGameControlsEnabled(false);
 
-        // İçerik paneline ekle
         contentPanel.add(mainPanel, "game");
     }
 
-    
-    private JPanel createConnectionPanel() {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setBorder(BorderFactory.createTitledBorder("Sunucu Bağlantısı"));
+    private JPanel createControlPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BorderLayout(10, 10));
+        panel.setBackground(new Color(240, 244, 255));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        JLabel title = new JLabel("Oyun Kontrolleri", JLabel.CENTER);
+        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        title.setForeground(new Color(40, 40, 90));
+        panel.add(title, BorderLayout.NORTH);
 
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.gridwidth = 2;
-        statusLabel = new JLabel("Bağlantı durumu: Bağlı değil", JLabel.CENTER);
-        panel.add(statusLabel, gbc);
+        JPanel content = new JPanel();
+        content.setOpaque(false);
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+
+        JPanel armyCountPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        armyCountPanel.setOpaque(false);
+        JLabel armyLabel = new JLabel("Birlik Sayısı:");
+        armyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        armyCountPanel.add(armyLabel);
+
+        armyCountComboBox = new JComboBox<>(new Integer[]{1, 2, 3, 5, 10});
+        armyCountComboBox.setPreferredSize(new Dimension(80, 25));
+        armyCountComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        armyCountPanel.add(armyCountComboBox);
+        content.add(armyCountPanel);
+        content.add(Box.createRigidArea(new Dimension(0, 15)));
+
+        JPanel buttonPanel = new JPanel(new GridLayout(5, 1, 10, 10));
+        buttonPanel.setOpaque(false);
+
+        Color gradientBase = new Color(85, 110, 155);
+        placeArmyButton = UIComponentFactory.createGradientButton("Birlik Yerleştir", gradientBase);
+        attackButton = UIComponentFactory.createGradientButton("Saldır", gradientBase);
+        fortifyButton = UIComponentFactory.createGradientButton("Takviye", gradientBase);
+
+        // Teslim Ol butonu
+        JButton surrenderButton = UIComponentFactory.createGradientButton("Teslim Ol", new Color(200, 80, 60));
+        surrenderButton.addActionListener(e -> {
+            int confirm = JOptionPane.showConfirmDialog(
+                    this,
+                    "Gerçekten teslim olmak istiyor musunuz? Oyun sizin için sona erecek.",
+                    "Teslim Ol",
+                    JOptionPane.YES_NO_OPTION
+            );
+
+            if (confirm == JOptionPane.YES_OPTION) {
+                Message surrenderMsg = new Message(networkManager.getUsername(), "", MessageType.SURRENDER);
+                networkManager.sendMessage(surrenderMsg);
+            }
+        });
+
+        // Oyundan Çık butonu
+        JButton quitButton = UIComponentFactory.createGradientButton("Oyundan Çık", new Color(180, 60, 60));
+        quitButton.addActionListener(e -> {
+    int confirm = JOptionPane.showConfirmDialog(
+            this,
+            "Ana menüye dönmek istediğinizden emin misiniz? Tüm oyun verisi sıfırlanacaktır.",
+            "Ana Menüye Dön",
+            JOptionPane.YES_NO_OPTION
+    );
+
+    if (confirm == JOptionPane.YES_OPTION) {
+        completeReset(); // YENİ METOD
+        cardLayout.show(contentPanel, "menu");
+    }
+});
+
+// Game Over ekranındaki butonları da güncelle:
+JButton newGameButton = UIComponentFactory.createMenuButton("Yeni Oyun", 200, 50);
+newGameButton.addActionListener(e -> {
+    completeReset(); // YENİ METOD
+    cardLayout.show(contentPanel, "menu");
+});
+
+JButton mainMenuButton = UIComponentFactory.createMenuButton("Ana Menü", 200, 50);
+mainMenuButton.addActionListener(e -> {
+    completeReset(); // YENİ METOD  
+    cardLayout.show(contentPanel, "menu");
+});
+
+        buttonPanel.add(placeArmyButton);
+        buttonPanel.add(attackButton);
+        buttonPanel.add(fortifyButton);
+        buttonPanel.add(surrenderButton);
+        buttonPanel.add(quitButton);
+
+        placeArmyButton.addActionListener(e -> setCurrentAction(ActionType.PLACE_ARMY));
+        attackButton.addActionListener(e -> setCurrentAction(ActionType.ATTACK));
+        fortifyButton.addActionListener(e -> setCurrentAction(ActionType.FORTIFY));
+
+        content.add(buttonPanel);
+        panel.add(content, BorderLayout.CENTER);
 
         return panel;
     }
-
- 
-    
-    private JPanel createControlPanel() {
-    JPanel panel = new JPanel();
-    panel.setLayout(new BorderLayout(10, 10));
-    panel.setBackground(new Color(240, 244, 255));
-    panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-
-    JLabel title = new JLabel("Oyun Kontrolleri", JLabel.CENTER);
-    title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-    title.setForeground(new Color(40, 40, 90));
-    panel.add(title, BorderLayout.NORTH);
-
-    JPanel content = new JPanel();
-    content.setOpaque(false);
-    content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
-
-    JPanel armyCountPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-    armyCountPanel.setOpaque(false);
-    JLabel armyLabel = new JLabel("Birlik Sayısı:");
-    armyLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-    armyCountPanel.add(armyLabel);
-
-    armyCountComboBox = new JComboBox<>(new Integer[]{1, 2, 3, 5, 10});
-    armyCountComboBox.setPreferredSize(new Dimension(80, 25));
-    armyCountComboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-    armyCountPanel.add(armyCountComboBox);
-    content.add(armyCountPanel);
-    content.add(Box.createRigidArea(new Dimension(0, 15)));
-
-    JPanel buttonPanel = new JPanel(new GridLayout(5, 1, 10, 10)); // 5 satır yaptık
-    buttonPanel.setOpaque(false);
-
-    Color gradientBase = new Color(85, 110, 155);
-    placeArmyButton = createGradientButton("Birlik Yerleştir", gradientBase);
-    attackButton = createGradientButton("Saldır", gradientBase);
-    fortifyButton = createGradientButton("Takviye", gradientBase);
-
-    // Teslim Ol butonu
-    JButton surrenderButton = createGradientButton("Teslim Ol", new Color(200, 80, 60));
-    surrenderButton.addActionListener(e -> {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Gerçekten teslim olmak istiyor musunuz? Oyun sizin için sona erecek.",
-                "Teslim Ol",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            try {
-                Message surrenderMsg = new Message(username, "", MessageType.SURRENDER);
-                output.writeObject(surrenderMsg);
-                output.flush();
-            } catch (IOException ex) {
-                addLogMessage("Teslim mesajı gönderilemedi: " + ex.getMessage());
-            }
-        }
-    });
-
-    // Oyundan Çık butonu
-    JButton quitButton = createGradientButton("Oyundan Çık", new Color(180, 60, 60));
-    quitButton.addActionListener(e -> {
-        int confirm = JOptionPane.showConfirmDialog(
-                this,
-                "Oyundan çıkmak istediğinizden emin misiniz?",
-                "Çıkış Onayı",
-                JOptionPane.YES_NO_OPTION
-        );
-
-        if (confirm == JOptionPane.YES_OPTION) {
-            disconnectFromServer();
-            cardLayout.show(contentPanel, "menu");
-        }
-    });
-
-    // Doğru sırayla ekleyelim
-    buttonPanel.add(placeArmyButton);
-    buttonPanel.add(attackButton);
-    buttonPanel.add(fortifyButton);
-    buttonPanel.add(surrenderButton); // Teslim ol, çıkıştan önce
-    buttonPanel.add(quitButton);
-
-    placeArmyButton.addActionListener(e -> setCurrentAction(ActionType.PLACE_ARMY));
-    attackButton.addActionListener(e -> setCurrentAction(ActionType.ATTACK));
-    fortifyButton.addActionListener(e -> setCurrentAction(ActionType.FORTIFY));
-
-    content.add(buttonPanel);
-    panel.add(content, BorderLayout.CENTER);
-
-    return panel;
-}
-
-    
-    
-    
-    private JButton createGradientButton(String text, Color base) {
-        JButton button = new JButton(text) {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                GradientPaint gp = new GradientPaint(0, 0, base.brighter(), 0, getHeight(), base.darker());
-                g2.setPaint(gp);
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        button.setContentAreaFilled(false);
-        button.setOpaque(false);
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        button.setFocusPainted(false);
-        button.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        return button;
-    }
-
 
     private JPanel createChatPanel() {
         JPanel panel = new JPanel();
@@ -702,112 +579,186 @@ public class RiskClient extends JFrame {
         return panel;
     }
 
-   
+    // Network operations - delegated to NetworkManager
     public void connectToServer() {
-        serverIP = "13.60.58.114";  // Sabit IP
-        int port = 9034;            // Sabit port
-        username = usernameField.getText().trim();
+        String username = usernameField.getText().trim();
+        networkManager.connectToServer(username);
+    }
 
-        if (username.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Lütfen bir kullanıcı adı girin.", "Hata", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+    public void disconnectFromServer() {
+        networkManager.disconnectFromServer();
+        resetClientState();
+    }
 
-        if (!username.matches("^[a-zA-Z0-9_-]{3,16}$")) {
-            JOptionPane.showMessageDialog(this,
-                    "Geçersiz kullanıcı adı! Kullanıcı adı 3-16 karakter uzunluğunda olmalı ve sadece harfler, rakamlar, alt çizgi ve tire içermelidir.",
-                    "Hata",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+    // Game logic operations - delegated to GameLogicManager
+    public void territoryClicked(String territoryName) {
+        gameLogicManager.territoryClicked(territoryName);
+    }
 
-        try {
-            statusLabel.setText("Bağlanıyor: " + serverIP + ":" + port + "...");
-            Socket socket = new Socket();
-            socket.connect(new InetSocketAddress(serverIP, port), 10000);
-            socket.setSoTimeout(300000);
+    public void setCurrentAction(ActionType action) {
+        gameLogicManager.setCurrentAction(action);
+    }
 
-            this.socket = socket;
+    public void updateGameState(GameState newState) {
+        gameLogicManager.updateGameState(newState);
+    }
 
-            output = new ObjectOutputStream(socket.getOutputStream());
-            output.flush();
-            input = new ObjectInputStream(socket.getInputStream());
+    // Helper methods for managers
+    public void updateButtonStates(ActionType action) {
+        placeArmyButton.setBackground(null);
+        attackButton.setBackground(null);
+        fortifyButton.setBackground(null);
 
-            Message loginMessage = new Message(username, "", MessageType.LOGIN);
-            System.out.println("Giriş mesajı gönderiliyor...");
-            output.writeObject(loginMessage);
-            output.flush();
-            System.out.println("Giriş mesajı gönderildi.");
-
-            clientListener = new ClientListener(this);
-            new Thread(clientListener).start();
-
-            connected = true;
-            statusLabel.setText("Bağlantı durumu: Bağlı - " + serverIP + ":" + port);
-
-            chatField.setEnabled(true);
-            sendButton.setEnabled(true);
-
-            addLogMessage("Sunucuya bağlandı: " + serverIP + ":" + port);
-        } catch (IOException e) {
-            e.printStackTrace();
-            JOptionPane.showMessageDialog(this,
-                    "Sunucuya bağlanılamadı: " + e.getMessage() + "\nAWS sunucusunun çalıştığından ve güvenlik grubunun " + port + " portuna izin verdiğinden emin olun.",
-                    "Bağlantı Hatası", JOptionPane.ERROR_MESSAGE);
-            statusLabel.setText("Bağlantı durumu: Bağlantı hatası");
-            cardLayout.show(contentPanel, "menu");
+        switch (action) {
+            case PLACE_ARMY:
+                placeArmyButton.setBackground(Color.LIGHT_GRAY);
+                break;
+            case ATTACK:
+                attackButton.setBackground(Color.LIGHT_GRAY);
+                break;
+            case FORTIFY:
+                fortifyButton.setBackground(Color.LIGHT_GRAY);
+                break;
         }
     }
 
-    
-public void disconnectFromServer() {
-    if (connected) {
-        try {
-            //  Sunucuya çıkış mesajı gönder
-            Message logoutMessage = new Message(username, "", MessageType.LOGOUT);
-            output.writeObject(logoutMessage);
-            output.flush();
+    public int getSelectedArmyCount() {
+        return (Integer) armyCountComboBox.getSelectedItem();
+    }
 
-            // Dinleyici durduruluyor
-            if (clientListener != null) {
-                clientListener.stop();
-                clientListener = null; // 🔄 Temizle
-            }
-
-            // Bağlantı kapanıyor
-            if (output != null) {
-                output.close();
-                output = null;
-            }
-            if (input != null) {
-                input.close();
-                input = null;
-            }
-            if (socket != null) {
-                socket.close();
-                socket = null;
-            }
-
-            connected = false;
-            username = null; // 🔄 ÖNEMLİ: Kullanıcı adı sıfırlanmalı
-
-            // GUI durumunu sıfırla
-            statusLabel.setText("Bağlantı durumu: Bağlı değil");
-            chatField.setEnabled(false);
-            sendButton.setEnabled(false);
-            setGameControlsEnabled(false);
-
-            // Oyun durumlarını sıfırla
-            gameState = null;
-            selectedTerritory = null;
-            currentAction = null;
-
-            addLogMessage("Sunucu bağlantısı kesildi.");
-        } catch (IOException e) {
-            addLogMessage("Bağlantı kapatılırken hata: " + e.getMessage());
+    public void repaintMap() {
+        if (mapPanel != null) {
+            mapPanel.repaint();
         }
     }
-}
+
+    public void setGameStateToMap(GameState gameState) {
+        if (mapPanel != null) {
+            mapPanel.setGameState(gameState);
+            mapPanel.repaint();
+        }
+    }
+
+    public void setChatEnabled(boolean enabled) {
+        if (chatField != null) chatField.setEnabled(enabled);
+        if (sendButton != null) sendButton.setEnabled(enabled);
+    }
+
+    public void showMenuScreen() {
+        cardLayout.show(contentPanel, "menu");
+    }
+
+    public void updateStatusLabel(String message) {
+        if (statusLabel != null) {
+            statusLabel.setText(message);
+        }
+    }
+
+    public void setGameControlsEnabled(boolean enabled) {
+        if (placeArmyButton != null) placeArmyButton.setEnabled(enabled);
+        if (attackButton != null) attackButton.setEnabled(enabled);
+        if (fortifyButton != null) fortifyButton.setEnabled(enabled);
+        if (armyCountComboBox != null) armyCountComboBox.setEnabled(enabled);
+    }
+
+    public void updateArmyCountComboBox(ActionType action) {
+        if (armyCountComboBox == null) return;
+        
+        armyCountComboBox.removeAllItems();
+
+        GameState gameState = gameLogicManager.getGameState();
+        if (gameState == null) {
+            armyCountComboBox.addItem(1);
+            return;
+        }
+
+        Player player = gameState.getPlayers().get(networkManager.getUsername());
+        if (player == null) {
+            armyCountComboBox.addItem(1);
+            return;
+        }
+
+        switch (action) {
+            case PLACE_ARMY:
+                int maxArmies = player.getReinforcementArmies();
+                if (maxArmies <= 0) {
+                    armyCountComboBox.addItem(1);
+                } else {
+                    armyCountComboBox.addItem(1);
+                    if (maxArmies >= 2) armyCountComboBox.addItem(2);
+                    if (maxArmies >= 3) armyCountComboBox.addItem(3);
+                    if (maxArmies >= 5) armyCountComboBox.addItem(5);
+                    if (maxArmies >= 10) armyCountComboBox.addItem(10);
+                    if (maxArmies > 10 && !containsItem(armyCountComboBox, maxArmies)) {
+                        armyCountComboBox.addItem(maxArmies);
+                    }
+                }
+                break;
+
+            case ATTACK:
+                if (gameLogicManager.getSelectedTerritory() == null) {
+                    armyCountComboBox.addItem(1);
+                    if (player.getTerritories().stream().anyMatch(t -> {
+                        Territory ter = gameState.getTerritories().get(t);
+                        return ter != null && ter.getArmies() >= 3;
+                    })) {
+                        armyCountComboBox.addItem(2);
+                        armyCountComboBox.addItem(3);
+                    }
+                    break;
+                }
+
+                Territory attackTerritory = gameState.getTerritories().get(gameLogicManager.getSelectedTerritory());
+                if (attackTerritory != null) {
+                    int maxAttack = Math.min(3, attackTerritory.getArmies() - 1);
+                    for (int i = 1; i <= maxAttack; i++) {
+                        armyCountComboBox.addItem(i);
+                    }
+                } else {
+                    armyCountComboBox.addItem(1);
+                }
+                break;
+
+            case FORTIFY:
+                if (gameLogicManager.getSelectedTerritory() == null) {
+                    armyCountComboBox.addItem(1);
+                    break;
+                }
+
+                Territory fortifyTerritory = gameState.getTerritories().get(gameLogicManager.getSelectedTerritory());
+                if (fortifyTerritory != null) {
+                    int maxFortify = fortifyTerritory.getArmies() - 1;
+                    armyCountComboBox.addItem(1);
+                    if (maxFortify >= 2) armyCountComboBox.addItem(2);
+                    if (maxFortify >= 3) armyCountComboBox.addItem(3);
+                    if (maxFortify >= 5) armyCountComboBox.addItem(5);
+                    if (maxFortify >= 10) armyCountComboBox.addItem(10);
+                    if (maxFortify > 10 && !containsItem(armyCountComboBox, maxFortify)) {
+                        armyCountComboBox.addItem(maxFortify);
+                    }
+                } else {
+                    armyCountComboBox.addItem(1);
+                }
+                break;
+
+            default:
+                armyCountComboBox.addItem(1);
+                break;
+        }
+
+        if (armyCountComboBox.getItemCount() == 0) {
+            armyCountComboBox.addItem(1);
+        }
+    }
+
+    private boolean containsItem(JComboBox<Integer> comboBox, int value) {
+        for (int i = 0; i < comboBox.getItemCount(); i++) {
+            if ((Integer) comboBox.getItemAt(i) == value) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     private void showHowToPlayDialog() {
         JDialog dialog = new JDialog(this, "Nasıl Oynanır?", true);
@@ -863,556 +814,57 @@ public void disconnectFromServer() {
 
         dialog.setContentPane(content);
         dialog.setVisible(true);
-
     }
 
-    /**
-     * Sohbet mesajı gönderir.
-     */
     private void sendChatMessage() {
-        if (connected) {
+        if (networkManager.isConnected()) {
             String chatMessage = chatField.getText().trim();
             if (!chatMessage.isEmpty()) {
-                try {
-                    Message message = new Message(username, chatMessage, MessageType.CHAT);
-                    output.writeObject(message);
-                    output.flush();
-                    chatField.setText("");
-                } catch (IOException e) {
-                    addLogMessage("Mesaj gönderilemedi: " + e.getMessage());
-                }
+                Message message = new Message(networkManager.getUsername(), chatMessage, MessageType.CHAT);
+                networkManager.sendMessage(message);
+                chatField.setText("");
             }
         }
     }
 
-    /**
-     * Oyun kontrollerini etkinleştirir veya devre dışı bırakır.
-     */
-  public void setGameControlsEnabled(boolean enabled) {
-    placeArmyButton.setEnabled(enabled);
-    attackButton.setEnabled(enabled);
-    fortifyButton.setEnabled(enabled);
-    armyCountComboBox.setEnabled(enabled);
-}
-
-    
-
-    
-
-   
-    public void updateStatusLabel(String message) {
-        if (statusLabel != null) {
-            statusLabel.setText(message);
-        }
-    }
-
-    private void setCurrentAction(ActionType action) {
-        System.out.println("setCurrentAction çağrıldı: " + action); // Debug için
-
-        currentAction = action;
-        selectedTerritory = null;
-
-        // Butonların görsel durumunu güncelle
-        placeArmyButton.setBackground(null);
-        attackButton.setBackground(null);
-        fortifyButton.setBackground(null);
-
-        switch (action) {
-            case PLACE_ARMY:
-                placeArmyButton.setBackground(Color.LIGHT_GRAY);
-                updateStatusLabel("Birlik yerleştirmek için bir bölge seçin");
-                break;
-            case ATTACK:
-                attackButton.setBackground(Color.LIGHT_GRAY);
-                updateStatusLabel("Saldırmak için önce kendi bölgenizi seçin");
-                break;
-            case FORTIFY:
-                fortifyButton.setBackground(Color.LIGHT_GRAY);
-                updateStatusLabel("Takviye için önce kaynak bölgeyi seçin");
-                break;
-            default:
-                break;
-        }
-
-        // Aksiyonu ayarladıktan SONRA combobox'ı güncelle
-        updateArmyCountComboBox(action);
-
-        // ComboBox içeriğini kontrol et
-        System.out.println("ComboBox içeriği: ");
-        for (int i = 0; i < armyCountComboBox.getItemCount(); i++) {
-            System.out.println(" - " + armyCountComboBox.getItemAt(i));
-        }
-
-        mapPanel.repaint();
-    }
-
-   
-    private void updateArmyCountComboBox(ActionType action) {
-        System.out.println("updateArmyCountComboBox çağrıldı: " + action); // Debug için
-
-        armyCountComboBox.removeAllItems();
-
-        // Hiçbir şey seçili değilse ve oyun durumu yoksa sadece 1 ekle
-        if (gameState == null) {
-            System.out.println("gameState null, sadece 1 ekleniyor");
-            armyCountComboBox.addItem(1);
-            return;
-        }
-
-        Player player = gameState.getPlayers().get(username);
-        if (player == null) {
-            System.out.println("player null, sadece 1 ekleniyor");
-            armyCountComboBox.addItem(1);
-            return;
-        }
-
-        switch (action) {
-            case PLACE_ARMY:
-                // Takviye birlik yerleştirme - oyuncunun takviye birlik sayısı kadar
-                int maxArmies = player.getReinforcementArmies();
-                System.out.println("PLACE_ARMY: Takviye birlik sayısı = " + maxArmies);
-
-                // Takviye birlik yoksa bile birkaç seçenek göster
-                if (maxArmies <= 0) {
-                    armyCountComboBox.addItem(1);
-                    System.out.println("Takviye birlik yok, sadece 1 ekleniyor");
-                } else {
-                    // Standart seçenekler
-                    armyCountComboBox.addItem(1);
-                    if (maxArmies >= 2) {
-                        armyCountComboBox.addItem(2);
-                    }
-                    if (maxArmies >= 3) {
-                        armyCountComboBox.addItem(3);
-                    }
-                    if (maxArmies >= 5) {
-                        armyCountComboBox.addItem(5);
-                    }
-                    if (maxArmies >= 10) {
-                        armyCountComboBox.addItem(10);
-                    }
-
-                    // Eğer maksimum değer standart seçeneklerden farklıysa, onu da ekle
-                    if (maxArmies > 10 && !containsItem(armyCountComboBox, maxArmies)) {
-                        armyCountComboBox.addItem(maxArmies);
-                    }
-
-                    System.out.println("Birlik yerleştirme için seçenekler eklendi");
-                }
-                break;
-
-            case ATTACK:
-                // Henüz bir bölge seçilmemişse
-                if (selectedTerritory == null) {
-                    armyCountComboBox.addItem(1);
-                    if (player.getTerritories().stream().anyMatch(t -> {
-                        Territory ter = gameState.getTerritories().get(t);
-                        return ter != null && ter.getArmies() >= 3;
-                    })) {
-                        armyCountComboBox.addItem(2);
-                        armyCountComboBox.addItem(3);
-                    }
-                    System.out.println("Saldırı için varsayılan değerler eklendi");
-                    break;
-                }
-
-                // Bölge seçilmişse, o bölgeden yapılabilecek maksimum saldırıyı hesapla
-                Territory attackTerritory = gameState.getTerritories().get(selectedTerritory);
-                if (attackTerritory != null) {
-                    int maxAttack = Math.min(3, attackTerritory.getArmies() - 1);
-                    System.out.println("Saldırı için maksimum birlik: " + maxAttack);
-
-                    for (int i = 1; i <= maxAttack; i++) {
-                        armyCountComboBox.addItem(i);
-                    }
-                } else {
-                    armyCountComboBox.addItem(1);
-                    System.out.println("Seçili bölge bulunamadı, sadece 1 ekleniyor");
-                }
-                break;
-
-            case FORTIFY:
-                // Henüz bir bölge seçilmemişse
-                if (selectedTerritory == null) {
-                    armyCountComboBox.addItem(1);
-                    System.out.println("Takviye için varsayılan değer eklendi");
-                    break;
-                }
-
-                // Bölge seçilmişse, o bölgeden yapılabilecek maksimum takviyeyi hesapla
-                Territory fortifyTerritory = gameState.getTerritories().get(selectedTerritory);
-                if (fortifyTerritory != null) {
-                    int maxFortify = fortifyTerritory.getArmies() - 1;
-                    System.out.println("Takviye için maksimum birlik: " + maxFortify);
-
-                    // En az 1 birlik ekle
-                    armyCountComboBox.addItem(1);
-
-                    // Eğer 2 veya daha fazla birlik gönderilebiliyorsa, daha fazla seçenek ekle
-                    if (maxFortify >= 2) {
-                        armyCountComboBox.addItem(2);
-                    }
-                    if (maxFortify >= 3) {
-                        armyCountComboBox.addItem(3);
-                    }
-                    if (maxFortify >= 5) {
-                        armyCountComboBox.addItem(5);
-                    }
-                    if (maxFortify >= 10) {
-                        armyCountComboBox.addItem(10);
-                    }
-
-                    // Maksimum değer yukarıdakilerden farklıysa ekle
-                    if (maxFortify > 10 && !containsItem(armyCountComboBox, maxFortify)) {
-                        armyCountComboBox.addItem(maxFortify);
-                    }
-                } else {
-                    armyCountComboBox.addItem(1);
-                    System.out.println("Seçili bölge bulunamadı, sadece 1 ekleniyor");
-                }
-                break;
-
-            default:
-                armyCountComboBox.addItem(1);
-                System.out.println("Tanımlanmamış aksiyon, sadece 1 ekleniyor");
-                break;
-        }
-
-        if (armyCountComboBox.getItemCount() == 0) {
-            armyCountComboBox.addItem(1);
-            System.out.println("Hiç seçenek eklenmedi, varsayılan olarak 1 ekleniyor");
-        }
-
-        // Eklenen seçenekleri logla
-        System.out.println("ComboBox'a eklenen seçenekler:");
-        for (int i = 0; i < armyCountComboBox.getItemCount(); i++) {
-            System.out.println(" - " + armyCountComboBox.getItemAt(i));
-        }
-    }
-
-    private boolean containsItem(JComboBox<Integer> comboBox, int value) {
-        for (int i = 0; i < comboBox.getItemCount(); i++) {
-            if ((Integer) comboBox.getItemAt(i) == value) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-   
-    public void territoryClicked(String territoryName) {
-        if (!connected || gameState == null || !gameState.isGameStarted()) {
-            return;
-        }
-
-        // Oyuncunun sırası mı kontrol et
-        String currentPlayer = gameState.getCurrentPlayer();
-        if (currentPlayer == null || !currentPlayer.equals(username)) {
-            addLogMessage("Şu anda sizin sıranız değil. Sıra " + currentPlayer + " oyuncusunda.");
-            return;
-        }
-
-        Territory territory = gameState.getTerritories().get(territoryName);
-
-        if (currentAction == null) {
-            selectedTerritory = territoryName;
-            statusLabel.setText("Seçilen bölge: " + territoryName + " (" + territory.getOwner() + ", " + territory.getArmies() + " birlik)");
-        } else {
-            switch (currentAction) {
-                case PLACE_ARMY:
-                    handlePlaceArmy(territoryName);
-                    break;
-                case ATTACK:
-                    handleAttack(territoryName);
-                    if (selectedTerritory != null) {
-                        updateArmyCountComboBox(ActionType.ATTACK);  // Bu satırı ekleyin
-                    }
-                    break;
-
-                case FORTIFY:
-                    handleFortify(territoryName);
-                    if (selectedTerritory != null) {
-                        updateArmyCountComboBox(ActionType.FORTIFY);  // Bu satırı ekleyin
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        mapPanel.repaint();
-    }
-
-    private void handlePlaceArmy(String territoryName) {
-        Territory territory = gameState.getTerritories().get(territoryName);
-
-        if (!territory.getOwner().equals(username)) {
-            addLogMessage("Sadece kendi bölgelerinize birlik yerleştirebilirsiniz.");
-            return;
-        }
-
-        int armies = (Integer) armyCountComboBox.getSelectedItem();
-        Player player = gameState.getPlayers().get(username);
-
-        if (player.getReinforcementArmies() < armies) {
-            addLogMessage("Yeterli takviye birliğiniz yok. Kalan: " + player.getReinforcementArmies());
-            return;
-        }
-        try {
-            GameAction action = new GameAction(ActionType.PLACE_ARMY, territoryName, null, armies);
-            Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
-            actionMessage.setGameAction(action);
-            output.writeObject(actionMessage);
-            output.flush();
-
-            // Extra repaint ekleyin
-            mapPanel.repaint();
-
-            currentAction = null;
-            selectedTerritory = null;
-        } catch (IOException e) {
-            addLogMessage("Hareket gönderilemedi: " + e.getMessage());
-        }
-
-
-    }
-
-    private void handleAttack(String territoryName) {
-        if (selectedTerritory == null) {
-            // İlk tıklama - saldıran bölgeyi seç
-            Territory territory = gameState.getTerritories().get(territoryName);
-
-            if (!territory.getOwner().equals(username)) {
-                addLogMessage("Saldırı için önce kendi bölgelerinizden birini seçmelisiniz.");
-                return;
-            }
-
-            if (territory.getArmies() < 2) {
-                addLogMessage("Saldırmak için en az 2 birliğe ihtiyacınız var.");
-                return;
-            }
-
-            selectedTerritory = territoryName;
-            updateArmyCountComboBox(ActionType.ATTACK);
-            statusLabel.setText("Saldıran bölge: " + territoryName + ". Şimdi hedef bölgeyi seçin.");
-        } else {
-            // İkinci tıklama - hedef bölgeyi seç
-            Territory sourceTerritory = gameState.getTerritories().get(selectedTerritory);
-            Territory targetTerritory = gameState.getTerritories().get(territoryName);
-
-            if (targetTerritory.getOwner().equals(username)) {
-                addLogMessage("Kendi bölgenize saldıramazsınız.");
-                selectedTerritory = null;
-                return;
-            }
-
-            if (!sourceTerritory.isNeighbor(territoryName)) {
-                addLogMessage("Sadece komşu bölgelere saldırabilirsiniz.");
-                selectedTerritory = null;
-                return;
-            }
-
-            // Maksimum saldırı birliği
-            int maxAttackArmies = Math.min(3, sourceTerritory.getArmies() - 1);
-            int selectedArmies = Math.min((Integer) armyCountComboBox.getSelectedItem(), maxAttackArmies);
-
-            // Zar atma diyaloğunu göster
-            int defenderArmies = Math.min(2, targetTerritory.getArmies());
-            DiceDialog diceDialog = new DiceDialog(
-                    this,
-                    username,
-                    targetTerritory.getOwner(),
-                    selectedArmies,
-                    defenderArmies
-            );
-            diceDialog.setVisible(true);
-
-            // Zar sonuçlarını al (diceDialog dispose edildikten sonra)
-            int[] attackDice = diceDialog.getAttackDice();
-            int[] defenseDice = diceDialog.getDefenseDice();
-
-            if (attackDice != null && defenseDice != null) {
-                try {
-                    // Zar sonuçlarını içeren özel bir oyun hareketi oluştur
-                    GameAction action = new GameAction(
-                            ActionType.ATTACK,
-                            selectedTerritory,
-                            territoryName,
-                            selectedArmies
-                    );
-
-                    Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
-                    actionMessage.setGameAction(action);
-                    output.writeObject(actionMessage);
-                    output.flush();
-
-                    addLogMessage("Saldırı komutu gönderildi. " + selectedTerritory + " -> " + territoryName
-                            + " (Zarlar: " + Arrays.toString(attackDice) + " vs " + Arrays.toString(defenseDice) + ")");
-
-                    currentAction = null;
-                    selectedTerritory = null;
-                } catch (IOException e) {
-                    addLogMessage("Hareket gönderilemedi: " + e.getMessage());
-                }
-            } else {
-                addLogMessage("Zar atma iptal edildi.");
-                currentAction = null;
-                selectedTerritory = null;
-            }
-        }
-       
-
-    }
-
-    
-    private void handleFortify(String territoryName) {
-        if (selectedTerritory == null) {
-            // İlk tıklama - kaynak bölgeyi seç
-            Territory territory = gameState.getTerritories().get(territoryName);
-
-            if (!territory.getOwner().equals(username)) {
-                addLogMessage("Takviye için önce kendi bölgelerinizden birini seçmelisiniz.");
-                return;
-            }
-
-            if (territory.getArmies() < 2) {
-                addLogMessage("Takviye yapmak için bölgede en az 2 birlik olmalıdır.");
-                return;
-            }
-
-            selectedTerritory = territoryName;
-            statusLabel.setText("Kaynak bölge: " + territoryName + ". Şimdi hedef bölgeyi seçin.");
-        } else {
-            // İkinci tıklama - hedef bölgeyi seç
-            Territory sourceTerritory = gameState.getTerritories().get(selectedTerritory);
-            Territory targetTerritory = gameState.getTerritories().get(territoryName);
-
-            if (!targetTerritory.getOwner().equals(username)) {
-                addLogMessage("Sadece kendi bölgelerinize takviye yapabilirsiniz.");
-                selectedTerritory = null;
-                return;
-            }
-
-            if (selectedTerritory.equals(territoryName)) {
-                addLogMessage("Farklı bir bölge seçmelisiniz.");
-                selectedTerritory = null;
-                return;
-            }
-
-            int armies = Math.min((Integer) armyCountComboBox.getSelectedItem(), sourceTerritory.getArmies() - 1);
-
-            try {
-                GameAction action = new GameAction(ActionType.FORTIFY, selectedTerritory, territoryName, armies);
-                Message actionMessage = new Message(username, "", MessageType.GAME_ACTION);
-                actionMessage.setGameAction(action);
-                output.writeObject(actionMessage);
-                output.flush();
-
-                currentAction = null;
-                selectedTerritory = null;
-            } catch (IOException e) {
-                addLogMessage("Hareket gönderilemedi: " + e.getMessage());
-            }
-        }
-       
-    }
-
-   
     public void startGame() {
-        if (connected) {
-            try {
-                Message startGameMessage = new Message(username, "", MessageType.START_GAME);
-                output.writeObject(startGameMessage);
-                output.flush();
-            } catch (IOException e) {
-                addLogMessage("Oyun başlatma isteği gönderilemedi: " + e.getMessage());
-            }
+        if (networkManager.isConnected()) {
+            Message startGameMessage = new Message(networkManager.getUsername(), "", MessageType.START_GAME);
+            networkManager.sendMessage(startGameMessage);
         }
     }
 
-   
     public void addLogMessage(String message) {
         String fullMessage = "[Sistem] " + message;
 
-        // Eğer bu mesaj bir önceki sistem mesajı ile aynıysa tekrar yazma
         if (fullMessage.equals(lastSystemMessage)) {
             return;
         }
 
         lastSystemMessage = fullMessage;
 
-        chatArea.append(fullMessage + "\n");
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        if (chatArea != null) {
+            chatArea.append(fullMessage + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        }
     }
 
-   
     public void addChatMessage(String sender, String message) {
-        chatArea.append("[" + sender + "] " + message + "\n");
-        chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        if (chatArea != null) {
+            chatArea.append("[" + sender + "] " + message + "\n");
+            chatArea.setCaretPosition(chatArea.getDocument().getLength());
+        }
     }
 
     public void checkConnection() {
-        if (connected && socket != null) {
-            if (socket.isClosed() || !socket.isConnected()) {
-                addLogMessage("Sunucu bağlantısı kesildi.");
-                disconnectFromServer();
-            }
+        if (!networkManager.isConnected()) {
+            addLogMessage("Sunucu bağlantısı kesildi.");
+            disconnectFromServer();
         }
     }
 
-  
-public void updateGameState(GameState newState) {
-    System.out.println("\n=== YENİ OYUN DURUMU ALINDI ===");
-
-    if (newState == null) {
-        System.out.println("HATA: Alınan oyun durumu NULL!");
-        return;
-    }
-
-    // Değişiklik öncesi ve sonrası durumu karşılaştır
-    if (gameState != null) {
-        System.out.println("Önceki oyun durumu ile karşılaştırma:");
-        for (Map.Entry<String, Territory> entry : newState.getTerritories().entrySet()) {
-            String territoryName = entry.getKey();
-            Territory newTerritory = entry.getValue();
-            Territory oldTerritory = gameState.getTerritories().get(territoryName);
-
-            if (oldTerritory != null && oldTerritory.getArmies() != newTerritory.getArmies()) {
-                System.out.println("DEĞİŞİKLİK: " + territoryName
-                        + " | Eski birlik: " + oldTerritory.getArmies()
-                        + " | Yeni birlik: " + newTerritory.getArmies());
-            }
-        }
-    }
-
-    this.gameState = null;
-    this.gameState = newState;
-
-    mapPanel.setGameState(null);
-    mapPanel.setGameState(gameState);
-    mapPanel.repaint();
-
-    if (gameState.isGameStarted()) {
-        boolean isMyTurn = gameState.getCurrentPlayer().equals(username);
-        setGameControlsEnabled(isMyTurn); // 🔄 Sadece sırası gelen oyuncuya butonlar açık
-
-        if (isMyTurn) {
-            addLogMessage("Sıra sizde.");
-        } else {
-            addLogMessage("Sıra " + gameState.getCurrentPlayer() + " oyuncusunda.");
-            // 🔒 Ekstra güvenlik için tüm aktif eylemi iptal et
-            currentAction = null;
-            selectedTerritory = null;
-        }
-
-        updatePlayerInfo();
-    }
-
-    System.out.println("=== OYUN DURUMU GÜNCELLENDİ ===\n");
-}
-
-   
     private void updatePlayerInfo() {
+        GameState gameState = gameLogicManager.getGameState();
         if (gameState == null) {
             return;
         }
@@ -1425,13 +877,11 @@ public void updateGameState(GameState newState) {
                     JPanel infoPanel = (JPanel) component;
                     infoPanel.removeAll();
 
-                    // Oyuncu bilgilerini ekle
                     for (String playerName : gameState.getPlayerList()) {
                         Player player = gameState.getPlayers().get(playerName);
                         JLabel playerLabel = new JLabel(playerName + ": " + player.getTerritories().size() + " bölge, "
-                                + (playerName.equals(username) ? player.getReinforcementArmies() + " takviye birlik" : ""));
+                                + (playerName.equals(networkManager.getUsername()) ? player.getReinforcementArmies() + " takviye birlik" : ""));
 
-                        // Geçerli oyuncuyu vurgula
                         if (playerName.equals(gameState.getCurrentPlayer())) {
                             playerLabel.setFont(playerLabel.getFont().deriveFont(Font.BOLD));
                             playerLabel.setForeground(Color.BLUE);
@@ -1447,37 +897,106 @@ public void updateGameState(GameState newState) {
             }
         }
     }
+    /**
+ * Oyunu tamamen sıfırlar - yeni kullanıcı gibi yapar
+ */
+private void completeReset() {
+    System.out.println("=== TAM SIFIRLAMA BAŞLATIYOR ===");
+    
+    // 1. Ağ bağlantısını kes
+    networkManager.disconnectFromServer();
+    
+    // 2. GUI bileşenlerini sıfırla
+    resetAllGUIComponents();
+    
+    // 3. Oyun durumunu sıfırla
+    gameLogicManager = new GameLogicManager(this); // Yeni instance
+    
+    // 4. Status güncelle
+    updateStatusLabel("Bağlantı durumu: Bağlı değil");
+    
+    System.out.println("=== TAM SIFIRLAMA TAMAMLANDI ===");
+}
 
-   
+/**
+ * Tüm GUI bileşenlerini sıfırlar
+ */
+private void resetAllGUIComponents() {
+    // Username field'ını temizle
+    if (usernameField != null) {
+        usernameField.setText("");
+        System.out.println("Username field temizlendi");
+    }
+    
+    // Chat area'yı temizle
+    if (chatArea != null) {
+        chatArea.setText("");
+        System.out.println("Chat area temizlendi");
+    }
+    
+    // Chat field'ını temizle ve devre dışı bırak
+    if (chatField != null) {
+        chatField.setText("");
+        chatField.setEnabled(false);
+    }
+    
+    // Send button'ı devre dışı bırak
+    if (sendButton != null) {
+        sendButton.setEnabled(false);
+    }
+    
+    // Oyun kontrollerini devre dışı bırak
+    setGameControlsEnabled(false);
+    
+    // Haritayı temizle
+    if (mapPanel != null) {
+        mapPanel.setGameState(null);
+        mapPanel.repaint();
+        System.out.println("Harita temizlendi");
+    }
+    
+    // Sistem mesajlarını sıfırla
+    lastSystemMessage = null;
+    
+    System.out.println("Tüm GUI bileşenleri sıfırlandı");
+}
+
     public void handleGameEnd(String winner) {
         SwingUtilities.invokeLater(() -> {
-            // Oyun sonu ekranında kazananı göster
             if (winner != null && !winner.isEmpty()) {
                 winnerLabel.setText("Kazanan: " + winner);
             } else {
                 winnerLabel.setText("Oyun sona erdi.");
             }
 
-            // Oyun sonu ekranına geç
             cardLayout.show(contentPanel, "gameOver");
         });
     }
 
-    // Getter metodları (ClientListener tarafından kullanılır)
+    // Getter methods for managers and ClientListener
+    public NetworkManager getNetworkManager() {
+        return networkManager;
+    }
+
+    public GameLogicManager getGameLogicManager() {
+        return gameLogicManager;
+    }
+
     public String getUsername() {
-        return username;
+        return networkManager.getUsername();
     }
 
     public String getSelectedTerritory() {
-        return selectedTerritory;
+        return gameLogicManager.getSelectedTerritory();
     }
 
     public ObjectInputStream getInput() {
-        return input;
+        return networkManager.getInput();
     }
 
-    
     public ObjectOutputStream getOutput() {
-        return output;
+        return networkManager.getOutput();
     }
 }
+    
+

@@ -51,6 +51,26 @@ public class GameRoom {
 
         sendGameStateToAll();
     }
+    
+    public void handlePlayerSurrender(ClientHandler surrenderingPlayer) {
+    String surrenderPlayerName = surrenderingPlayer.getUsername();
+    
+    // Teslim olan oyuncuyu listeden çıkar
+    players.remove(surrenderingPlayer);
+    
+    // Kalan oyuncuya kazandığını bildir
+    if (players.size() == 1) {
+        ClientHandler winner = players.get(0);
+        winner.sendMessage(new Message("SERVER", 
+            surrenderPlayerName + " teslim oldu! Siz kazandınız!", 
+            MessageType.GAME_ENDED));
+    }
+    
+    // Teslim olan oyuncuya bildir
+    surrenderingPlayer.sendMessage(new Message("SERVER", 
+        "Oyunu teslim ettiniz.", 
+        MessageType.GAME_ENDED));
+}
 
     public void applyMove(ClientHandler player, GameAction action) {
         String username = player.getUsername();
